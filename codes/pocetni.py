@@ -34,7 +34,7 @@ class MakeRoomWidget(QWidget):
         self.new_room_size.clicked.connect(self.getNewSize)
         self.new_room_size.setStatusTip('Start new room')
         #TODO: tu ide glavni dio gdje crtamo trenutno stanje
-        self.room_all = Room(self)
+        self.room_all = Room(self, 2)
 
         self.save_button = QPushButton('Save')
         self.save_button.setShortcut('Ctrl+S')
@@ -71,7 +71,7 @@ class MakeRoomWidget(QWidget):
         for row in self.room:
             row[0] = row[-1] = '#'
         #self.room_all.setText(str(self.room))
-        self.room_all.new(self.room)
+        self.room_all.update_room(self.room)
 
 
     def saveRoom(self):
@@ -108,7 +108,7 @@ class StartCleaningWidget(QWidget):
         layout.addWidget(self.button)
 
 
-        self.room = Room(self, input_room)
+        self.room = Room(self, 1, input_room)
         layout.addWidget(self.room)
 
         self.setLayout(layout)
@@ -191,7 +191,9 @@ class Main(QMainWindow):
 
         if fname[0]:
             with open(fname[0], 'r') as f:
-                data = f.read().splitlines()
+                #data = f.read().splitlines()
+                #data = [list(i) for i in data]
+                data = [list(i) for i in f.read().splitlines()]
 
             self.startCleaning(data)
 
