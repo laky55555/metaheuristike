@@ -1,5 +1,5 @@
 from math import sqrt
-from random import sample, choice
+from random import sample, choice, random
 import itertools
 
 
@@ -14,10 +14,17 @@ import itertools
 
 class Genetic():
 
-    def __init__(self, discovered_space, current_position):
+    def __init__(self, discovered_space, current_position, population_size, length_of_mini_path,
+                 mutation_probability, crossover_probability, number_of_iterations):
         self.discovered_space = discovered_space
-        self.current_position_x = current_position[0]
-        self.current_position_y = current_position[1]
+        # self.current_position_x = current_position[0]
+        # self.current_position_y = current_position[1]
+        self.current_position = current_position
+        self.population_size = population_size
+        self.length_of_mini_path = length_of_mini_path
+        self.mutation_probability = mutation_probability
+        self.crossover_probability = crossover_probability
+        self.number_of_iterations = number_of_iterations
 
 
     def neighbours_of(self, position):
@@ -37,9 +44,11 @@ class Genetic():
                 continue
             if(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
                 continue
-            if(discovered_space[i][j] == '#' or discovered_space == 'x'):
+            if(self.discovered_space[i][j] == '#' or self.discovered_space[i][j] == 'x'):
                 continue
             positions.add((i, j))
+            # print("position " + str(i) + str(j) + " bla " )
+            # print(self.discovered_space[i][j])
         return positions
 
     # generate mini paths from current robot position
@@ -119,58 +128,198 @@ class Genetic():
     def mutation(self, mini_path):
         genes_for_mutation = self.find_mutable_genes(mini_path)
 
+        # je li isto prolazit svaki gen i gledat vjerojatnost?
         index = choice(range(1, len(mini_path))) # choosing position to mutate
         while len(genes_for_mutation[index-1]) < 1: # if set is empty
             index = choice(range(1, len(mini_path)))
 
-        new_gene = sample(genes_for_mutation[index-1], 1)[0] # choosing position that replaces previously chosen one for mutation
+        new_gene = sample(genes_for_mutation[index-1], 1)[0] # choosing position that replaces previously chosen
 
 
-        #TODO: tu treba maknuti mini_path2
-        mini_path2 = mini_path[:]
-        mini_path2[index] = new_gene
+        # #TODO: tu treba maknuti mini_path2
+        # mini_path2 = mini_path[:]
+        # mini_path2[index] = new_gene
+        #
+        # return mini_path2
 
-        return mini_path2
+        mini_path[index] = new_gene
+        #return mini_path2
 
-    def crossover(self, parent1, parent2, point_of_crossing):
 
+
+
+###################################################
+
+    def crossover_one_point(self, parent1, parent2):
+        new_children1 = []
+
+        # if random number is higher than crossover probability place parents directly into the new genration
+        if self.crossover_probability < random():
+            new_children1.extend([parent1, parent2])
+            return new_children1
+        # random point of crossover
+        point_options = list(range(1,6))
+        point_of_crossing = choice(point_options)
+        # ?? ako nije ponovno pogadjat point_of_crossing ili proglasit neuspjelim
         if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
             parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
             child1 = parent1[0:point_of_crossing]
             child2 = parent2[0:point_of_crossing]
             child1.extend(parent2[point_of_crossing:len(parent2)])
             child2.extend(parent1[point_of_crossing:len(parent1)])
-            return child1, child2
-
+            return new_children1.extend([child1, child2])
         return None
 
 
+
+    def generate_initial_population(self):
+        initial_population = self.generate_mini_paths(self.population_size, self.length_of_mini_path, self.current_position)
+        return initial_population
+
+### Propotionate selection ###
+    def place_chromosomes_fittnes_into_interval(self, current_population):
+        dictionary_fitness_values = {}
+        fitness_sum = 0
+        probability = 0
+        for index, mini_path in enumerate(current_population):
+            value = self.calculate_fittnes_function(mini_path)
+            fitness_sum += value
+            dictionary_fitness_values[index] = value
+
+        for key, value in dictionary_fitness_values.items():
+            probability += (value/fitness_sum)
+            dictionary_fitness_values[key] = probability
+
+        return dictionary_fitness_values
+
+
+    def select_chromosome(self, dictionary_fitness_values):
+        # >>> import os
+        # >>> int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
+        probability = random()
+        for index, fittnes_value in dictionary_fitness_values.items():
+            if probability < fittnes_value:
+                #print(index)
+                return index
+
+
+    def make_one_iteration(self, current_population):
+        print("make one iteration")
+        #print(int(self.population_size/2) - 1)
+        new_generation = []
+        i = 0
+        # highest fitness first
+        current_population = sorted(current_population, key = self.calculate_fittnes_function, reverse=True)
+        new_generation.extend(current_population[:2])
+        del current_population[:2]
+
+        dictionary_fitness_values = self.place_chromosomes_fittnes_into_interval(current_population)
+        print(dictionary_fitness_values)
+        # for i in range(int(self.population_size/2) -1):
+
+        while i < (int(self.population_size/2) - 1):
+            print("while")
+            # select parents
+            parent_one = current_population[self.select_chromosome(dictionary_fitness_values)]
+            parent_two = current_population[self.select_chromosome(dictionary_fitness_values)]
+
+            # crossover
+            new_children = self.crossover_one_point(parent_one, parent_two)
+            if(new_children != None):
+                print("uspilo")
+                #mutation
+                self.mutation(new_children[0])
+                self.mutation(new_children[1])
+                new_generation.extend(new_children)
+                #print(new_generation)
+                i += 1
+            # neuspjelo krizanje
+            # ?? detektirat ili ubacit roditelje bez krizanja
+
+        return new_generation
+
+
     def next_move(self):
+        current_population = self.generate_initial_population()
+        print("inicijalna")
+        print(current_population)
 
-        mini_path = []
-        self.generate_mini_path()
+        for i in range(self.number_of_iterations):
+            current_population = self.make_one_iteration(current_population)
+
+        return current_population
 
 
-a = ([['#', '#', '#', '#', '#', '#', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '#']])
-gen = Genetic(a, (2,3))
-#a = gen.generate_mini_paths(3,5,3,3)
-#b = a[1]
-b = [(3, 3), (3, 2), (2, 3), (3, 4), (4, 5), (5, 4)]
-c = [(3, 3), (2, 2), (1, 3), (4, 4), (2, 5), (5, 4)]
-b = [(3, 3), (4 ,3), (5, 3), (5, 4), (5, 5), (5, 6)]
 
-print(gen.crossover(b, c, 1))
-print(gen.crossover(b, c, 2))
-print(gen.crossover(b, c, 3))
-print(gen.crossover(b, c, 4))
-print(gen.crossover(b, c, 5))
-gen.calculate_fittnes_function([(1, 1), (1, 2), (1, 3), (1, 4), (1, 5)])
-gen.calculate_fittnes_function([(1,1), (1, 2), (2, 3)])
+
+# fun fun fun noot
+
+
+a = ([['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#']])
+
+gen = Genetic(a, (5,3), 6, 5, 0.2, 0.8, 5)
+
+# mini_paths  = gen.generate_mini_paths(6,5,(5,3))
+# print(mini_paths)
+#
+# dict = gen.place_chromosomes_fittnes_into_interval(mini_paths)
+# print(dict)
+
+# nova = gen.make_one_iteration(mini_paths)
+# for i in range(10):
+#     print("_______________________")
+#     nova = gen.make_one_iteration(nova)
+#     print(nova)
+#
+# dict_nova = gen.place_chromosomes_fittnes_into_interval(nova)
+# print(dict_nova)
+
+zadnja_gen = gen.next_move()
+print(zadnja_gen)
+
+
+# a = gen.generate_mini_paths(3,5,(3,3))
+# print(a)
+# #b = a[1]
+# b = [(3, 3), (3, 2), (2, 3), (3, 4), (4, 5), (5, 4)]
+# c = [(3, 3), (2, 2), (1, 3), (4, 4), (2, 5), (5, 4)]
+# b = [(3, 3), (4 ,3), (5, 3), (5, 4), (5, 5), (5, 6)]
+#
+# print(b)
+# gen.mutation(b)
+# print(b)
+
+
+
+# print(gen.crossover(b, c, 1))
+# print(gen.crossover(b, c, 2))
+# print(gen.crossover(b, c, 3))
+# print(gen.crossover(b, c, 4))
+# print(gen.crossover(b, c, 5))
+# gen.calculate_fittnes_function([(1, 1), (1, 2), (1, 3), (1, 4), (1, 5)])
+# gen.calculate_fittnes_function([(1,1), (1, 2), (2, 3)])
+
+#
+
+#print(nova)
+
+
 
 """print(b)
 print(gen.find_mutable_genes(b))
@@ -179,3 +328,24 @@ for i in range(10):
     print()
     print(b, mut, gen.calculate_fittnes_function(mut))
     print(gen.crossover(b, mut, 2))"""
+
+
+
+# for i in range(0,10):
+#     line = ""
+#     for j in range(0,10):
+#         line += ("(" + str(i) + "," + str(j) + ") ")
+#     print(line)
+
+
+
+# (0,0) (0,1) (0,2) (0,3) (0,4) (0,5) (0,6) (0,7) (0,8) (0,9)
+# (1,0) (1,1) (1,2) (1,3) (1,4) (1,5) (1,6) (1,7) (1,8) (1,9)
+# (2,0) (2,1) (2,2) (2,3) (2,4) (2,5) (2,6) (2,7) (2,8) (2,9)
+# (3,0) (3,1) (3,2) (3,3) (3,4) (3,5) (3,6) (3,7) (3,8) (3,9)
+# (4,0) (4,1) (4,2) (4,3) (4,4) (4,5) (4,6) (4,7) (4,8) (4,9)
+# (5,0) (5,1) (5,2) (5,3) (5,4) (5,5) (5,6) (5,7) (5,8) (5,9)
+# (6,0) (6,1) (6,2) (6,3) (6,4) (6,5) (6,6) (6,7) (6,8) (6,9)
+# (7,0) (7,1) (7,2) (7,3) (7,4) (7,5) (7,6) (7,7) (7,8) (7,9)
+# (8,0) (8,1) (8,2) (8,3) (8,4) (8,5) (8,6) (8,7) (8,8) (8,9)
+# (9,0) (9,1) (9,2) (9,3) (9,4) (9,5) (9,6) (9,7) (9,8) (9,9)
