@@ -292,6 +292,10 @@ gen = Genetic(a, (5,3), 6, 5, 0.2, 0.8, 5)
 
 zadnja_gen = gen.next_move()
 print(zadnja_gen)
+print("next moove")
+zadnja_gen = sorted(zadnja_gen, key = gen.calculate_fittnes_function, reverse=True)
+print(zadnja_gen[0][1])
+
 
 
 # a = gen.generate_mini_paths(3,5,(3,3))
