@@ -95,7 +95,7 @@ class Genetic():
         return distance
 
 
-    def calculate_fittnes_function(self, mini_path):
+    def calculate_fitness_function(self, mini_path):
         a = 2
         b = 2
         c = 4
@@ -112,11 +112,19 @@ class Genetic():
 
         for (x,y,z) in zip(mini_path[:-1], mini_path[1:], mini_path[2:]):
             # same neighbours of positions x and z
+            # print(x, y, z)
+            # print("susjedi od x")
+            # print(saved_neighbours[x])
+            # print("susjedi od z")
+            # print(saved_neighbours[z])
             intersection = saved_neighbours[x].intersection(saved_neighbours[z])
             if len(intersection):
-                #print (intersection, intersection.remove(y))
+                # print("prije micanja susjeda")
+                # print (intersection)
                 # remove position y from shared neighbours of x and z
                 intersection.remove(y)
+                # print("nakon micanja")
+                # print(intersection)
                 mutable_genes.append(intersection)
 
         if (len(mini_path) >= 2):
@@ -125,10 +133,12 @@ class Genetic():
             mutable_genes[-1].remove(mini_path[-1])
         return mutable_genes
 
+
+    # TODO: za svaki kromosom generiraj slucajan broj, ako je manji od vjerojatnosti mutiraj
     def mutation(self, mini_path):
         genes_for_mutation = self.find_mutable_genes(mini_path)
 
-        # je li isto prolazit svaki gen i gledat vjerojatnost?
+        # je li isto prolazit svaki gen i gledat vjerojatnost? -> nope
         index = choice(range(1, len(mini_path))) # choosing position to mutate
         while len(genes_for_mutation[index-1]) < 1: # if set is empty
             index = choice(range(1, len(mini_path)))
@@ -145,7 +155,58 @@ class Genetic():
         mini_path[index] = new_gene
         #return mini_path2
 
+    def update_mutable_genes(self, mini_path, index_of_position_to_update, genes_for_mutation):
+        # TODO: bolje to napravit
+        print("UPDATEEE")
+        neighbours_of_previous = self.get_available_positions(mini_path[index_of_position_to_update-1])
+        neighbours_of_next = self.get_available_positions(mini_path[index_of_position_to_update+1])
+        intersection = neighbours_of_previous.intersection(neighbours_of_next)
+        if len(intersection):
+            # remove position y from shared neighbours of x and z
+            intersection.remove(mini_path[index_of_position_to_update])
+            genes_for_mutation[index_of_position_to_update-1] = intersection
 
+
+    def mutationVersion2(self, mini_path):
+        print("voluuume 2")
+        print(mini_path)
+        genes_for_mutation = self.find_mutable_genes(mini_path)
+        i = 1
+        while i < self.length_of_mini_path+1:
+        # for i in range(1, self.length_of_mini_path+1):
+            print(i)
+            rand = random()
+            print(rand)
+            if rand < self.mutation_probability:
+                print(mini_path[i])
+                # ako se moze mutirat mutiraj
+                # nakon mutiranja triba update genes_for_mutation
+                if len(genes_for_mutation[i-1]) >= 1:
+                    print(genes_for_mutation)
+                    new_gene = sample(genes_for_mutation[i-1], 1)[0]
+                    print(new_gene)
+                    mini_path[i] = new_gene
+
+                    # ako minjamo zadnjeg nista
+                    if(i == self.length_of_mini_path):
+                        continue
+                    if(i == self.length_of_mini_path-1):
+                    # ako minjamo predzadnjeg drugaciji update za moguce promjene za zadnju poziciju
+                        neighbours_of_second_last = self.get_available_positions(mini_path[i])
+                        if neighbours_of_second_last.intersection(mini_path[i+1]):
+                            neighbours_of_second_last.remove(mini_path[i+1])
+                        genes_for_mutation[i] = neighbours_of_second_last
+                        print("nakon updatea")
+                        print(genes_for_mutation)
+                    # inace
+                    # nac mutable_genes za mini_path[i+1]
+                    # nac susjede od mini_path[i] i mini_path[i+2]
+                    # update genes_for_mutation na poziciji i
+                    else:
+                        self.update_mutable_genes(mini_path, i+1, genes_for_mutation)
+            i += 1
+
+        return mini_path
 
 
 ###################################################
@@ -159,8 +220,8 @@ class Genetic():
             return new_children1
         # random point of crossover
         point_options = list(range(1,6))
-        point_of_crossing = choice(point_options)
-        # ?? ako nije ponovno pogadjat point_of_crossing ili proglasit neuspjelim
+        point_of_crossing = 3
+        # ?? ako nije ponovno pogadjat point_of_crossing ili proglasit neuspjelim ili dodat roditelje
         if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
             parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
             child1 = parent1[0:point_of_crossing]
@@ -177,12 +238,12 @@ class Genetic():
         return initial_population
 
 ### Propotionate selection ###
-    def place_chromosomes_fittnes_into_interval(self, current_population):
+    def place_chromosomes_fitness_into_interval(self, current_population):
         dictionary_fitness_values = {}
         fitness_sum = 0
         probability = 0
         for index, mini_path in enumerate(current_population):
-            value = self.calculate_fittnes_function(mini_path)
+            value = self.calculate_fitness_function(mini_path)
             fitness_sum += value
             dictionary_fitness_values[index] = value
 
@@ -197,8 +258,8 @@ class Genetic():
         # >>> import os
         # >>> int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
         probability = random()
-        for index, fittnes_value in dictionary_fitness_values.items():
-            if probability < fittnes_value:
+        for index, fitness_value in dictionary_fitness_values.items():
+            if probability < fitness_value:
                 #print(index)
                 return index
 
@@ -209,11 +270,11 @@ class Genetic():
         new_generation = []
         i = 0
         # highest fitness first
-        current_population = sorted(current_population, key = self.calculate_fittnes_function, reverse=True)
+        current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
         new_generation.extend(current_population[:2])
         del current_population[:2]
 
-        dictionary_fitness_values = self.place_chromosomes_fittnes_into_interval(current_population)
+        dictionary_fitness_values = self.place_chromosomes_fitness_into_interval(current_population)
         print(dictionary_fitness_values)
         # for i in range(int(self.population_size/2) -1):
 
@@ -228,10 +289,13 @@ class Genetic():
             if(new_children != None):
                 print("uspilo")
                 #mutation
-                self.mutation(new_children[0])
-                self.mutation(new_children[1])
+                # self.mutation(new_children[0])
+                # self.mutation(new_children[1])
+                #
+                self.mutationVersion2(new_children[0])
+                self.mutationVersion2(new_children[1])
+
                 new_generation.extend(new_children)
-                #print(new_generation)
                 i += 1
             # neuspjelo krizanje
             # ?? detektirat ili ubacit roditelje bez krizanja
@@ -254,15 +318,14 @@ class Genetic():
 
 # fun fun fun noot
 
-
 a = ([['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
       ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
       ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
       ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
       ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', 'x', 'x', 'x', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', 'x', 'x', '.', '.', '.', '.', '.', '#'],
       ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
       ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
       ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
@@ -273,12 +336,12 @@ a = ([['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
       ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
       ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#']])
 
-gen = Genetic(a, (5,3), 6, 5, 0.2, 0.8, 5)
+gen = Genetic(a, (5,3), 4, 5, 0.2, 0.8, 10)
 
-# mini_paths  = gen.generate_mini_paths(6,5,(5,3))
+#mini_paths  = gen.generate_mini_paths(5,5,(5,3))
 # print(mini_paths)
 #
-# dict = gen.place_chromosomes_fittnes_into_interval(mini_paths)
+#dict = gen.place_chromosomes_fitness_into_interval(mini_paths)
 # print(dict)
 
 # nova = gen.make_one_iteration(mini_paths)
@@ -287,14 +350,34 @@ gen = Genetic(a, (5,3), 6, 5, 0.2, 0.8, 5)
 #     nova = gen.make_one_iteration(nova)
 #     print(nova)
 #
-# dict_nova = gen.place_chromosomes_fittnes_into_interval(nova)
+# dict_nova = gen.place_chromosomes_fitness_into_interval(nova)
 # print(dict_nova)
 
 zadnja_gen = gen.next_move()
 print(zadnja_gen)
 print("next moove")
-zadnja_gen = sorted(zadnja_gen, key = gen.calculate_fittnes_function, reverse=True)
+zadnja_gen = sorted(zadnja_gen, key = gen.calculate_fitness_function, reverse=True)
 print(zadnja_gen[0][1])
+
+a = ([['#', '#', '#', '#', '#', '#', '#'],
+      ['#', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '#'],
+      ['#', '.', '.', '.', '.', '.', '.', '#']])
+
+# gen = Genetic(a, (2,3), 50, 5, 0.2, 0.8, 10)
+#
+# mini_paths  = gen.generate_mini_paths(5,5,(2,3))
+#
+# mini_path = mini_paths[0]
+# print(mini_path)
+#
+# print("prije mutacije")
+# mut = gen.mutationVersion2(mini_path)
+# print("posli mutacije")
+# print(mut)
+# print(mini_path)
 
 
 
@@ -316,8 +399,8 @@ print(zadnja_gen[0][1])
 # print(gen.crossover(b, c, 3))
 # print(gen.crossover(b, c, 4))
 # print(gen.crossover(b, c, 5))
-# gen.calculate_fittnes_function([(1, 1), (1, 2), (1, 3), (1, 4), (1, 5)])
-# gen.calculate_fittnes_function([(1,1), (1, 2), (2, 3)])
+# gen.calculate_fitness_function([(1, 1), (1, 2), (1, 3), (1, 4), (1, 5)])
+# gen.calculate_fitness_function([(1,1), (1, 2), (2, 3)])
 
 #
 
@@ -330,7 +413,7 @@ print(gen.find_mutable_genes(b))
 for i in range(10):
     mut = gen.mutation(b)
     print()
-    print(b, mut, gen.calculate_fittnes_function(mut))
+    print(b, mut, gen.calculate_fitness_function(mut))
     print(gen.crossover(b, mut, 2))"""
 
 
