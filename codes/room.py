@@ -1,6 +1,6 @@
 #import sys
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtGui import QPainter, QColor
+from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 from enum import Enum
 
@@ -106,9 +106,19 @@ class Room(QWidget):
             for i in range(len(self.room)):
                 for j in range(len(self.room[i])):
                     self.drawSquare(painter, self.minimum*j, self.minimum*i, self.switch[self.room[i][j]])
-                    #TODO: nacrtati kuda se je robot setao.
+
+            #print(self.robot)
+            pen = QPen(QColor(0xDAAA99), 3, Qt.DashLine)
+            painter.setPen(pen)
+            self.middle = self.minimum/2
+            for i,j in zip(self.robot[:-1], self.robot[1:]):
+                self.drawMovement(painter, self.minimum*i[0], self.minimum*i[1], self.minimum*j[0], self.minimum*j[1])
 
             painter.end()
+
+
+    def drawMovement(self, painter, x1, y1, x2, y2):
+        painter.drawLine(x1+self.middle, y1+self.middle, x2+self.middle, y2+self.middle)
 
 
     def drawSquare(self, painter, x, y, hex_color):

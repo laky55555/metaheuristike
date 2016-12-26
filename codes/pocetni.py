@@ -71,7 +71,10 @@ class MakeRoomWidget(QWidget):
         for row in self.room:
             row[0] = row[-1] = '#'
         #self.room_all.setText(str(self.room))
-        self.room_all.update_room(self.room)
+        #TODO: to se brise
+        robot = []
+        #robot = [(1,1),(1,2),(1,3),(2,3),(3,2)]
+        self.room_all.update_room(self.room, robot)
 
 
     def saveRoom(self):
