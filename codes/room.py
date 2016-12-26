@@ -57,6 +57,7 @@ class Room(QWidget):
         self.room = data
         # Initialize minimum to 0 for easier handling clik events (avoiding exceptins).
         self.minimum = 0
+        self.start = self.findStart()
 
         # Debuging:
         # print ("Max room width = {0}, max room heigh = {1}".format(self.room_max_width, self.room_max_height))
@@ -85,6 +86,7 @@ class Room(QWidget):
         self.robot = robot
         # Initialize minimum to 0 for easier handling clik events (avoiding exceptins).
         self.minimum = 0
+        self.start = self.findStart()
         # This automatically calls paintEvent()
         self.update()
 
@@ -148,7 +150,13 @@ class Room(QWidget):
         painter.drawRect(x, y, self.minimum, self.minimum)
 
 
+    def findStart(self):
+        for row in self.room:
+            for cell in row:
+                if cell == Symbol.ROBOT.value:
+                    return True
 
+        return False
 
     def delete_old_robot_position(self):
         """Replace all robot positions on the map with unvisited."""
@@ -177,6 +185,8 @@ class Room(QWidget):
                 (self.room[x][y] == Symbol.UNVISITED.value or self.room[x][y] == Symbol.VISITED.value)):
                 self.delete_old_robot_position()
                 self.room[x][y] = Symbol.ROBOT.value
+                self.robot = [(x,y)]
+                self.start = True
 
             # If we are in mode 2 and we clicked on empty or place with obstacle.
             elif(self.mode == 2):

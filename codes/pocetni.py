@@ -11,6 +11,7 @@ from PyQt5.QtGui import QIcon, QPainter, QColor, QFont, QPalette
 from PyQt5 import QtCore
 from PyQt5.QtCore import QDateTime
 from room import Room
+from robot import Robot
 
 
 
@@ -90,17 +91,46 @@ class MakeRoomWidget(QWidget):
 
             self.setVisible(False)
 
+class RunRobotWidget(QWidget):
 
+    def __init__(self, parent=None, room=None):
+        super().__init__(parent)
+
+        self.parent = parent
+        self.room = room
+        #self.robot = Robot(self.room.room, self.room.robot)
+        self.robot = Robot(self.room)
+        layout = QVBoxLayout()
+
+        self.button_move_one = QPushButton('Next move')
+        self.button_move_one.setShortcut('Ctrl+D')
+        self.button_move_one.setStatusTip('Make next move')
+        self.button_move_one.clicked.connect(self.robot.move_one)
+        layout.addWidget(self.button_move_one)
+
+        self.button_move_all = QPushButton('Do all moves')
+        self.button_move_all.setShortcut('Ctrl+A')
+        self.button_move_all.setStatusTip('Make moves until end')
+        self.button_move_all.clicked.connect(self.robot.move_all)
+        layout.addWidget(self.button_move_all)
+
+        self.button_back_one = QPushButton('Go back')
+        self.button_back_one.setShortcut('Ctrl+P')
+        self.button_back_one.setStatusTip('Undo move')
+        self.button_back_one.clicked.connect(self.robot.move_back)
+        layout.addWidget(self.button_back_one)
+
+        layout.addWidget(self.robot.room_widget)
+
+        self.setLayout(layout)
 
 class StartCleaningWidget(QWidget):
 
-    start_postion = False
-
-    def __init__(self, parent=None, input_room=None):
+    def __init__(self, parent=None, input_room_data=None):
         super().__init__(parent)
 
-        self.start_postion = False
-        self.input_room = input_room
+        self.parent = parent
+        self.input_room_data = input_room_data
 
         layout = QVBoxLayout()
 
@@ -111,17 +141,23 @@ class StartCleaningWidget(QWidget):
         layout.addWidget(self.button)
 
 
-        self.room = Room(self, 1, input_room)
+        self.room = Room(self, 1, input_room_data)
         layout.addWidget(self.room)
 
         self.setLayout(layout)
 
     def startCleaning(self):
-        if(self.start_postion is False):
+        #print(self.room.start)
+        if(self.room.start is False):
             self.infoMessage()
         else:
             print("Poljećemo")
             #TODO: tu sad ide glavni dio
+            self.room.mode = 0
+            run_robot_widget = RunRobotWidget(self.parent, self.room)
+            self.parent.central_widgets.addWidget(run_robot_widget)
+            self.parent.central_widgets.setCurrentWidget(run_robot_widget)
+
 
     def infoMessage(self):
         msg = QMessageBox()
@@ -134,6 +170,7 @@ class StartCleaningWidget(QWidget):
                             "pozition on which will robot start cleaning.\n" +
                             "You can select position by clicking on room map on free cell.")
         msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
 
         #retval = msg.exec_()
         #print ("value of pressed message box button:", retval)
