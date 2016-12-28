@@ -14,17 +14,29 @@ class Robot(object):
     def move_one(self):
         print("move_one")
         self.detect_room()
-        gen = Genetic(self.detected_room, self.robot_position, 4, 5, 0.2, 0.8, 10)
+        if(self.uncleaned_cells == 0):
+            print("Sve smo ocistili")
+            return True
+        current_position = [(i, row.index('R')) for i, row in enumerate(self.detected_room) if 'R' in row]
+        self.detected_room[current_position[0][0]][current_position[0][1]] = 'o'
+        gen = Genetic(self.detected_room, current_position[0], 4, 5, 0.2, 0.8, 10)
         print("Slijedeci potez")
+        #TODO: next move mora vratiti u kojem smjeru krece i to se onda proslijedi mapi.
+        #TODO: mapa onda ovisno o smjeru updatea položaj i stanje.
         next_move = gen.next_move()[0][1]
         print(next_move)
         self.room_widget.do_move(next_move)
+
+        return False
 
         # poziva funkciju iz genetskog koji je idući potez najbolji i salje trenutnu mapu
         # updatea trenutnu mapu u room-u (mozda napraviti funkciju u room-u za to)
 
     def move_all(self):
         print("move_all")
+        finished = self.move_one()
+        while(not finished):
+            finished = self.move_one()
         #poziva se move_one dok ne napravimo sve poteze
 
     def move_back(self):
@@ -34,20 +46,33 @@ class Robot(object):
 
     def extract_detected_only(self):
         self.detected_room = []
+        self.uncleaned_cells = 0
+        print("Full room")
+        for row in self.full_room:
+            print(row)
         for i, row in zip(range(len(self.full_room)), self.full_room):
             if(next((True for item in row if item is not None), False)):
-                self.detected_room.append([symbol for symbol in row if symbol is not None])
+                #TODO: da li treba nadopunjavati None s necime ili pitanje je sad :P
+                new_row = [symbol if symbol is not None else '#' for symbol in row]
+                self.detected_room.append(new_row)
+                self.uncleaned_cells += new_row.count('.')
 
-        print(self.detected_room)
+        print("detected_room")
+        for row in self.detected_room:
+            print(row)
+        print(self.uncleaned_cells)
 
     def detect_room(self):
         print("detect_room")
         self.robot_position = self.room_widget.robot[-1]
         sensors_input = self.room_widget.detect_room(self.sight_distance)
+        print ("sensors input")
+        for row in sensors_input:
+            print(row, sensors_input[row])
         for start in sensors_input:
-            for j, symbol in zip(range(start[1], len(sensors_input[start])+1), sensors_input[start]):
-                if(symbol == 'R'):
-                    symbol = 'o'
+            for j, symbol in zip(range(start[1], len(sensors_input[start])+start[1]+1), sensors_input[start]):
+                #if(symbol == 'R'):
+                    #symbol = 'o'
                 self.full_room[start[0]][j] = symbol
 
         self.extract_detected_only()
