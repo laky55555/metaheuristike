@@ -114,7 +114,7 @@ class Room(QWidget):
             painter.setPen(pen)
             self.middle = self.minimum/2
             for i,j in zip(self.robot[:-1], self.robot[1:]):
-                self.drawMovement(painter, self.minimum*i[0], self.minimum*i[1], self.minimum*j[0], self.minimum*j[1])
+                self.drawMovement(painter, self.minimum*i[1], self.minimum*i[0], self.minimum*j[1], self.minimum*j[0])
 
             painter.end()
 
@@ -195,3 +195,43 @@ class Room(QWidget):
                 elif(self.room[x][y] == Symbol.OBSTACLE.value):
                     self.room[x][y] = Symbol.UNVISITED.value
             self.update()
+
+    def detect_room(self, sight_distance):
+        position = self.robot[-1]
+        sight_distance_quad = sight_distance*sight_distance
+        minimal_x = max(position[0]-sight_distance, 0)
+        # mozda treba dodati -1 na self.room_max_height
+        maximal_x = min(position[0]+sight_distance+1, self.room_max_height)
+
+        minimal_y = max(position[1]-sight_distance, 0)
+        # treba sigurno pametnije jer duljine redaka u sobi ne moraju biti jednake.
+        #maximal_y = min(position[1]+sight_distance, self.room_max_width)
+
+        number_of_rows = maximal_x - minimal_x
+        #detected = [[] for i in range(number_of_rows)]
+        detected = {}
+        #print(minimal_x, maximal_x, minimal_y)
+        for num, i in zip(range(number_of_rows), range(minimal_x, maximal_x)):
+            maximal_y = min(position[1]+sight_distance+1, len(self.room[i]))
+            initialized = False
+            for j in range(minimal_y, maximal_y):
+                if((position[0]-i)*(position[0]-i) + (position[1]-j)*(position[1]-j) <= sight_distance_quad):
+                    #detected[num].append((i,j))
+                    if(initialized == False):
+                        y = j
+                        initialized = True
+                        detected[(i,y)] = []
+                    detected[(i,y)].append(self.room[i][j])
+
+
+
+
+        return detected
+
+    def do_move(self, position):
+        #print(self.robot)
+        self.room[self.robot[-1][0]][self.robot[-1][1]] = 'o'
+        self.room[position[0]][position[1]] = 'R'
+        self.robot.append(position)
+        self.update()
+        #print(self.robot)
