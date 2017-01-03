@@ -115,19 +115,10 @@ class Genetic():
 
         for (x,y,z) in zip(mini_path[:-1], mini_path[1:], mini_path[2:]):
             # same neighbours of positions x and z
-            # # print (x, y, z)
-            # # print ("susjedi od x")
-            # # print (saved_neighbours[x])
-            # # print ("susjedi od z")
-            # # print (saved_neighbours[z])
             intersection = saved_neighbours[x].intersection(saved_neighbours[z])
             if len(intersection):
-                # # print ("prije micanja susjeda")
-                # # print  (intersection)
                 # remove position y from shared neighbours of x and z
                 intersection.remove(y)
-                # # print ("nakon micanja")
-                # # print (intersection)
                 mutable_genes.append(intersection)
 
         if (len(mini_path) >= 2):
@@ -176,7 +167,7 @@ class Genetic():
 
     def update_mutable_genes(self, mini_path, index_of_position_to_update, genes_for_mutation):
         # TODO: bolje to napravit
-        # print ("UPDATEEE")
+        #
         neighbours_of_previous = self.get_available_positions(mini_path[index_of_position_to_update-1])
         neighbours_of_next = self.get_available_positions(mini_path[index_of_position_to_update+1])
         intersection = neighbours_of_previous.intersection(neighbours_of_next)
@@ -187,41 +178,29 @@ class Genetic():
 
 
     def mutationVersion2(self, mini_path):
-        # print ("mutiram mini path")
-        # print (mini_path)
         genes_for_mutation = self.find_mutable_genes(mini_path)
         i = 1
         while i < self.length_of_mini_path+1:
-        # for i in range(1, self.length_of_mini_path+1):
-            # print ("kromosom", i)
-            # rand = random()
-            # # print (rand)
             rand = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
+            # for each gene
             if rand < self.mutation_probability:
-                # print (mini_path[i])
-                # ako se moze mutirat mutiraj
                 # nakon mutiranja triba update genes_for_mutation
+                # if there are genes that can be updated choose one
                 if len(genes_for_mutation[i-1]) >= 1:
-                    # print (genes_for_mutation)
                     new_gene = sample(genes_for_mutation[i-1], 1)[0]
-                    # print (new_gene)
                     mini_path[i] = new_gene
 
-                    # ako minjamo zadnjeg nista
+                    # if last gene is being mutated no changes needed
                     if(i == self.length_of_mini_path):
                         continue
                     if(i == self.length_of_mini_path-1):
-                    # ako minjamo predzadnjeg drugaciji update za moguce promjene za zadnju poziciju
+                    # if second last is being changed change genes_for_mutation of the last gene
                         neighbours_of_second_last = self.get_available_positions(mini_path[i])
                         if neighbours_of_second_last.intersection(mini_path[i+1]):
                             neighbours_of_second_last.remove(mini_path[i+1])
                         genes_for_mutation[i] = neighbours_of_second_last
-                        # print ("nakon updatea")
-                        # print (genes_for_mutation)
-                    # inace
-                    # nac mutable_genes za mini_path[i+1]
-                    # nac susjede od mini_path[i] i mini_path[i+2]
-                    # update genes_for_mutation na poziciji i
+                    # if any other gene is being mutated change genes_for_mutation of the next one (mini_path[i+1])
+                    # update genes_for_mutation na poziciji i+1  -> find nighbours of mini_path[i] and mini_path[i+2] and find intersection
                     else:
                         self.update_mutable_genes(mini_path, i+1, genes_for_mutation)
             i += 1
@@ -234,13 +213,12 @@ class Genetic():
         new_children1 = []
 
         # if random number is higher than crossover probability place parents directly into the new genration
-        # if self.crossover_probability < random():
         if self.crossover_probability < int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1):
             new_children1.extend([parent1, parent2])
             return new_children1
         # random point of crossover
         point_options = list(range(1,6))
-        point_of_crossing = 3
+        point_of_crossing = choice(point_options)
         # ?? ako nije ponovno pogadjat point_of_crossing ili proglasit neuspjelim ili dodat roditelje
         if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
             parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
@@ -259,6 +237,7 @@ class Genetic():
 
 ### Propotionate selection ###
     def place_chromosomes_fitness_into_interval(self, current_population):
+        #
         dictionary_fitness_values = {}
         fitness_sum = 0
         probability = 0
