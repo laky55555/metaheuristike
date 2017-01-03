@@ -19,7 +19,7 @@ class Robot(object):
             return True
         current_position = [(i, row.index('R')) for i, row in enumerate(self.detected_room) if 'R' in row]
         self.detected_room[current_position[0][0]][current_position[0][1]] = 'o'
-        gen = Genetic(self.detected_room, current_position[0], 4, 5, 0.2, 0.8, 10)
+        gen = Genetic(self.detected_room, current_position[0], 50, 5, 0.2, 0.85, 400)
         print("Slijedeci potez")
         #next_move = gen.next_move()[0][1]
         next_move = gen.next_move()
