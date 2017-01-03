@@ -228,10 +228,12 @@ class Room(QWidget):
 
         return detected
 
-    def do_move(self, position):
+    def do_move(self, direction):
         #print(self.robot)
         self.room[self.robot[-1][0]][self.robot[-1][1]] = 'o'
-        self.room[position[0]][position[1]] = 'R'
-        self.robot.append(position)
+        next_x_coord = self.robot[-1][0] + direction[0]
+        next_y_coord = self.robot[-1][1] + direction[1]
+        self.room[next_x_coord][next_y_coord] = 'R'
+        self.robot.append((next_x_coord, next_y_coord))
         self.update()
         #print(self.robot)

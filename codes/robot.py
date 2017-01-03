@@ -21,9 +21,8 @@ class Robot(object):
         self.detected_room[current_position[0][0]][current_position[0][1]] = 'o'
         gen = Genetic(self.detected_room, current_position[0], 4, 5, 0.2, 0.8, 10)
         print("Slijedeci potez")
-        #TODO: next move mora vratiti u kojem smjeru krece i to se onda proslijedi mapi.
-        #TODO: mapa onda ovisno o smjeru updatea položaj i stanje.
-        next_move = gen.next_move()[0][1]
+        #next_move = gen.next_move()[0][1]
+        next_move = gen.next_move()
         print(next_move)
         self.room_widget.do_move(next_move)
 
