@@ -2,6 +2,7 @@ from math import sqrt
 from random import sample, choice, random
 import itertools
 import os
+from copy import deepcopy
 
 #a = new Genetski([],(0,0))
 #[[(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
@@ -80,9 +81,9 @@ class Genetic():
     # number of uncleaned positions in mini path
     def mini_path_uncleaned_cells(self, mini_path):
         free = 0
-        for i,j in mini_path[1:]:
+        for index, postion in enumerate(mini_path[1:]):
             # print (i,j)
-            if(self.discovered_space[i][j] == '.'):
+            if(self.discovered_space[postion[0]][postion[1]] == '.' and mini_path.index(postion) > index):
                 free += 1
             else:
                 return free
@@ -98,10 +99,14 @@ class Genetic():
         return distance
 
 
-    def calculate_fitness_function(self, mini_path):
-        a = 1
-        b = 5
-        c = 1
+    def calculate_fitness_function(self, mini_path, debug = False):
+        a = -0.4
+        b = 2
+        c = 0.75
+        if(debug):
+            print("Udaljenost koju je robot prosao " + str(a*self.mini_path_distance(mini_path)))
+            print("Broj neocisceno " + str(b*self.mini_path_uncleaned_cells(mini_path)))
+            print("Razlika pocetne i svih pozicija " + str(c*self.mini_path_sum_distance(mini_path)))
         return (a*self.mini_path_distance(mini_path) + b*self.mini_path_uncleaned_cells(mini_path)
                 + c*self.mini_path_sum_distance(mini_path))
 
@@ -257,6 +262,18 @@ class Genetic():
         initial_population = self.generate_mini_paths(self.population_size, self.length_of_mini_path, self.current_position)
         return initial_population
 
+
+    def isprintaj_mini_path(self, mini_path):
+        print(mini_path)
+        print("Vrijednost = " + str(self.calculate_fitness_function(mini_path, True)) + " Iter = " + str(self.iteracija))
+        debug = deepcopy(self.discovered_space)
+        for i, row in enumerate(debug):
+            for j, element in enumerate(row):
+                if((i,j) in mini_path):
+                    debug[i][j] = str(mini_path.index((i,j)))
+        for row in debug:
+            print(row)
+
 ### Propotionate selection ###
     def place_chromosomes_fitness_into_interval(self, current_population):
         dictionary_fitness_values = {}
@@ -266,6 +283,7 @@ class Genetic():
             value = self.calculate_fitness_function(mini_path)
             fitness_sum += value
             dictionary_fitness_values[index] = value
+            self.isprintaj_mini_path(mini_path)
 
         for key, value in dictionary_fitness_values.items():
             probability += (value/fitness_sum)
@@ -317,7 +335,7 @@ class Genetic():
         new_generation.extend(current_population[:2])
         del current_population[:2]
 
-        dictionary_fitness_values = self.place_chromosomes_fitness_into_interval_relative(current_population)
+        dictionary_fitness_values = self.place_chromosomes_fitness_into_interval(current_population)
         # print (dictionary_fitness_values)
         # for i in range(int(self.population_size/2) -1):
 
@@ -354,10 +372,14 @@ class Genetic():
         # print ("inicijalna")
         # print (current_population)
 
+        self.iteracija = 0
         for i in range(self.number_of_iterations):
             current_population = self.make_one_iteration(current_population)
+            self.iteracija += 1
 
         current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
+        for mini_path in current_population:
+            self.isprintaj_mini_path(mini_path)
 
         next_move = current_population[0][1]
         direction = (next_move[0] - self.current_position[0], next_move[1] - self.current_position[1])
