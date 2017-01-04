@@ -1,4 +1,3 @@
-#import sys
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
@@ -109,7 +108,7 @@ class Room(QWidget):
                 for j in range(len(self.room[i])):
                     self.drawSquare(painter, self.minimum*j, self.minimum*i, self.switch[self.room[i][j]])
 
-            #print(self.robot)
+            # Drawing robot movement.
             pen = QPen(QColor(0xDAAA99), 3, Qt.DashLine)
             painter.setPen(pen)
             self.middle = self.minimum/2
@@ -120,6 +119,28 @@ class Room(QWidget):
 
 
     def drawMovement(self, painter, x1, y1, x2, y2):
+        """
+        Drawing line on widget.
+
+        Function draws line on widget square from start postion to end postion.
+
+        Parameters
+        ----------
+        painter : QPainter
+            PyQt5.QtGui class for drawing.
+        x1 : int
+            Coordinate on current widget on which x-coordinate of
+            square where robot started.
+        y1 : int
+            Coordinate on current widget on which y-coordinate of
+            square where robot started.
+        x2 : int
+            Coordinate on current widget on which x-coordinate of
+            square where robot ended.
+        y2 : int
+            Coordinate on current widget on which y-coordinate of
+            square where robot ended.
+        """
         painter.drawLine(x1+self.middle, y1+self.middle, x2+self.middle, y2+self.middle)
 
 
@@ -151,6 +172,7 @@ class Room(QWidget):
 
 
     def findStart(self):
+        """ Metod for looking if start postion for robot has been selected. """
         for row in self.room:
             for cell in row:
                 if cell == Symbol.ROBOT.value:
@@ -177,8 +199,6 @@ class Room(QWidget):
             y = event.pos().x()//self.minimum
             if (x >= self.room_max_height or y >= len(self.room[x])):
                 return
-            #print (event.pos().y()//self.minimum, event.pos().x()//self.minimum)
-            #print(Symbol.UNVISITED.value is self.room[x][y])
 
             # If we are in mode 1 and we clicked on empty place on map.
             if(self.mode == 1 and
@@ -196,44 +216,87 @@ class Room(QWidget):
                     self.room[x][y] = Symbol.UNVISITED.value
             self.update()
 
+
     def detect_room(self, sight_distance):
+        """
+        Method that return dictionary where key is tuple of row start position
+        of the map and value list with all discovered space. Metod calculated
+        all cells that can be seen form robots position with given sight_distance.
+        Method return circle around current position of robot.
+
+        Parameters
+        ----------
+        x : int
+            Int that symbolise how far robot can see.
+
+        Returns
+        -------
+        dictionary
+            Key is tuple of row start position in wholee map and
+            value list with all discovered space.
+
+        """
+
         position = self.robot[-1]
         sight_distance_quad = sight_distance*sight_distance
-        minimal_x = max(position[0]-sight_distance, 0)
-        # mozda treba dodati -1 na self.room_max_height
-        maximal_x = min(position[0]+sight_distance+1, self.room_max_height)
 
+        # Find first and last row in the map for robots position.
+        minimal_x = max(position[0]-sight_distance, 0)
+        maximal_x = min(position[0]+sight_distance+1, self.room_max_height)
         minimal_y = max(position[1]-sight_distance, 0)
-        # treba sigurno pametnije jer duljine redaka u sobi ne moraju biti jednake.
-        #maximal_y = min(position[1]+sight_distance, self.room_max_width)
 
         number_of_rows = maximal_x - minimal_x
-        #detected = [[] for i in range(number_of_rows)]
         detected = {}
-        #print(minimal_x, maximal_x, minimal_y)
-        for num, i in zip(range(number_of_rows), range(minimal_x, maximal_x)):
+
+
+        # For each row that robot can see find every cell that she can see.
+        # TODO: Maybe change something so robot can't see through wall. 
+        for i in range(minimal_x, maximal_x):
+            # Each rom can have different size.
             maximal_y = min(position[1]+sight_distance+1, len(self.room[i]))
             initialized = False
+            # For each cell check if it is inside line of sight.
             for j in range(minimal_y, maximal_y):
                 if((position[0]-i)*(position[0]-i) + (position[1]-j)*(position[1]-j) <= sight_distance_quad):
-                    #detected[num].append((i,j))
+                    # If this is first cell in row that has been seen initialize new key in dictionary.
                     if(initialized == False):
                         y = j
                         initialized = True
                         detected[(i,y)] = []
                     detected[(i,y)].append(self.room[i][j])
 
-
-
-
         return detected
 
     def do_move(self, direction):
-        #print(self.robot)
+        """
+        Method that change robot position and refresh room map. Method get
+        direction in which robot is headed and update its position accordingly.
+
+        Parameters
+        ----------
+        direction : tuple
+            Tuple of 2 elements, first is direction of robot movement in x axis,
+            and second of movement in y axis. -1 is go left/up, 1 right/down and
+            0 is stay in place.
+
+        """
         self.room[self.robot[-1][0]][self.robot[-1][1]] = 'o'
         next_x_coord = self.robot[-1][0] + direction[0]
         next_y_coord = self.robot[-1][1] + direction[1]
         self.room[next_x_coord][next_y_coord] = 'R'
         self.robot.append((next_x_coord, next_y_coord))
         self.update()
-        #print(self.robot)
+
+    def move_back(self):
+        """ Undo last robot movement and refresh room map. """
+
+        last_position = self.robot.pop()
+        # Check if robot visited last position already before now, and change
+        # cell tip in UNVISITED or VISITED accordingly.
+        if last_position in self.robot:
+            self.room[last_position[0]][last_position[1]] = 'o'
+        else:
+            self.room[last_position[0]][last_position[1]] = '.'
+
+        self.room[self.robot[-1][0]][self.robot[-1][1]] = 'R'
+        self.update()
