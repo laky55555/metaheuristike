@@ -168,38 +168,42 @@ class Genetic():
         # for x in population:
                 # print (self.mini_path_distance(x), self.mini_path_uncleaned_cells(x), self.mini_path_sum_distance(x))
 
-
-
     def update_mutable_genes(self, mini_path, index_of_position_to_update, genes_for_mutation):
         # TODO: bolje to napravit
-        #
         neighbours_of_previous = self.get_available_positions(mini_path[index_of_position_to_update-1])
         neighbours_of_next = self.get_available_positions(mini_path[index_of_position_to_update+1])
         intersection = neighbours_of_previous.intersection(neighbours_of_next)
         if len(intersection):
-            # remove position y from shared neighbours of x and z
+            # remove position y from shared neighbours of x and z, so that gen can not mutate into the same gene
             intersection.remove(mini_path[index_of_position_to_update])
             genes_for_mutation[index_of_position_to_update-1] = intersection
 
 
     def mutationVersion2(self, mini_path):
         genes_for_mutation = self.find_mutable_genes(mini_path)
-        i = 1
+        i = 1,
+        # for each gene generate random number from [0,1], if number is less than self.mutation_probability mutate gene
         while i < self.length_of_mini_path+1:
             rand = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
-            # for each gene
             if rand < self.mutation_probability:
-                # nakon mutiranja triba update genes_for_mutation
-                # if there are genes that can be updated choose one
+                # if there are genes that can be placed instead current one, choose one randomly
                 if len(genes_for_mutation[i-1]) >= 1:
                     new_gene = sample(genes_for_mutation[i-1], 1)[0]
                     mini_path[i] = new_gene
+
+                    """
+                    there are 3 cases:
+                        1. mutating last gene
+                        2. mutating second last gene
+                        3. mutating any other
+                    depending on each case we need to change certain genes in genes_for_mutation
+                    """
 
                     # if last gene is being mutated no changes needed
                     if(i == self.length_of_mini_path):
                         continue
                     if(i == self.length_of_mini_path-1):
-                    # if second last is being changed change genes_for_mutation of the last gene
+                    # if second last is being changed, change genes_for_mutation of the last gene
                         neighbours_of_second_last = self.get_available_positions(mini_path[i])
                         if neighbours_of_second_last.intersection(mini_path[i+1]):
                             neighbours_of_second_last.remove(mini_path[i+1])
@@ -216,15 +220,14 @@ class Genetic():
 
     def crossover_one_point(self, parent1, parent2):
         new_children1 = []
-
         # if random number is higher than crossover probability place parents directly into the new genration
         if self.crossover_probability < int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1):
             new_children1.extend([parent1, parent2])
             return new_children1
-        # random point of crossover
         point_options = list(range(1,6))
+        # choosing random point of crossover
         point_of_crossing = choice(point_options)
-        # ?? ako nije ponovno pogadjat point_of_crossing ili proglasit neuspjelim ili dodat roditelje
+        # TODO: ako nije ponovno pogadjat point_of_crossing ili proglasit neuspjelim??
         if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
             parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
             child1 = parent1[0:point_of_crossing]
@@ -254,19 +257,25 @@ class Genetic():
 
 ### Propotionate selection ###
     def place_chromosomes_fitness_into_interval(self, current_population):
-        #
+        # current population is sorted
+        # TODO: sort inside this function when calculating fitness function
         dictionary_fitness_values = {}
         fitness_sum = 0
         probability = 0
+        # create dictionary with indexes of mini paths as keys and theirs fitnesses as values
+        # e.g.
         for index, mini_path in enumerate(current_population):
             value = self.calculate_fitness_function(mini_path)
             fitness_sum += value
             dictionary_fitness_values[index] = value
             self.isprintaj_mini_path(mini_path)
 
+        # scale fitness values into interval [0, 1]
+        # e.g.
         for key, value in dictionary_fitness_values.items():
             probability += (value/fitness_sum)
             dictionary_fitness_values[key] = probability
+
 
         return dictionary_fitness_values
 
@@ -292,66 +301,56 @@ class Genetic():
     def select_chromosome(self, dictionary_fitness_values):
         # >>> import os
         # >>> int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
-        probability = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
         # probability = random()
-        # print ("biram roditelja")
+
+        # generate random number from [0,1]
+        probability = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
+        # go trough dictionary and find index of mini_path whose interval containes generated number
         for index, fitness_value in dictionary_fitness_values.items():
             if probability < fitness_value:
-                # print (index)
                 return index
 
 
     def make_one_iteration(self, current_population):
-        # print ("make one iteration")
-        ## print (int(self.population_size/2) - 1)
         new_generation = []
         i = 0
-        # highest fitness first
-        # print ("trenutna populacija")
+        # sort current population -> highest fitness first
         current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
-        # self.print _population(current_population)
-
+        # place two best chromosomes directly into the new generation
         new_generation.extend(current_population[:2])
-        del current_population[:2]
 
+        # del current_population[:2]
+
+        # TODO: sort inside place_chromosomes_fitness_into_interval ?
         dictionary_fitness_values = self.place_chromosomes_fitness_into_interval(current_population)
-        # print (dictionary_fitness_values)
-        # for i in range(int(self.population_size/2) -1):
 
         while i < (int(self.population_size/2) - 1):
-            # print (i)
-            # print ("punimo novu generaciju")
-            # select parents
+            # selecting parents
             parent_one = current_population[self.select_chromosome(dictionary_fitness_values)]
             parent_two = current_population[self.select_chromosome(dictionary_fitness_values)]
 
             # crossover
             new_children = self.crossover_one_point(parent_one, parent_two)
             if(new_children != None):
-                # print ("uspilo")
-                #mutation
-                # self.mutation(new_children[0])
-                # self.mutation(new_children[1])
-                #
+                # if crossover was successful mutate children
                 self.mutationVersion2(new_children[0])
                 self.mutationVersion2(new_children[1])
-
+                # add children to the new generation
                 new_generation.extend(new_children)
                 i += 1
-            # neuspjelo krizanje
+            # TODO: rijetko se dogode krizanja!
             # else:
                 # print ("NIJE uspilo")
-            # ?? detektirat ili ubacit roditelje bez krizanja
 
         return new_generation
 
 
     def next_move(self):
+        # generate initial population
         current_population = self.generate_initial_population()
-        # print ("inicijalna")
-        # print (current_population)
 
         self.iteracija = 0
+
         for i in range(self.number_of_iterations):
             current_population = self.make_one_iteration(current_population)
             self.iteracija += 1
@@ -360,7 +359,9 @@ class Genetic():
         for mini_path in current_population:
             self.isprintaj_mini_path(mini_path)
 
+        # first position from the best mini_path from the last generation
         next_move = current_population[0][1]
+        # direction is difference between next and current possition
         direction = (next_move[0] - self.current_position[0], next_move[1] - self.current_position[1])
 
         return direction
