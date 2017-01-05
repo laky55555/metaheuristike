@@ -5,6 +5,7 @@ from enum import Enum
 
 
 class Symbol(Enum):
+
     def __repr__(self):
         return self.value
     UNVISITED = '.'
@@ -12,7 +13,6 @@ class Symbol(Enum):
     OBSTACLE = 'x'
     VISITED = 'o'
     ROBOT = 'R'
-
 
 
 # Widget for drawing room.
@@ -25,8 +25,8 @@ class Room(QWidget):
     """
 
     # Dictionary for decoding chars into hex_color. Using in coloring room.
-    switch = {'.': 0x000000, '#': 0xCCCC66, 'x': 0xCC66CC, 'o': 0x66CC66, 'R':0xDAAA00}
-
+    switch = {'.': 0x000000, '#': 0xCCCC66,
+              'x': 0xCC66CC, 'o': 0x66CC66, 'R': 0xDAAA00}
 
     # Constructor needs expect parent so we know where we will draw widget.
     def __init__(self, parent=None, mode=0, data=[], robot=[]):
@@ -50,11 +50,13 @@ class Room(QWidget):
         super().__init__(parent)
 
         self.mode = mode
-        self.room_max_height =len(data)
-        self.room_max_width = max([len(row) for row in data]) if self.room_max_height > 0 else 0
+        self.room_max_height = len(data)
+        self.room_max_width = max(
+            [len(row) for row in data]) if self.room_max_height > 0 else 0
         self.robot = robot
         self.room = data
-        # Initialize minimum to 0 for easier handling clik events (avoiding exceptins).
+        # Initialize minimum to 0 for easier handling clik events (avoiding
+        # exceptins).
         self.minimum = 0
         self.start = self.findStart()
 
@@ -64,7 +66,6 @@ class Room(QWidget):
         # for row in self.room:
         #    print(row)
         # print('Robot movement:\n', self.robot)
-
 
     def update_room(self, data=[], robot=[]):
         """
@@ -79,16 +80,17 @@ class Room(QWidget):
             List consisting of tuples which represents robot movements.
 
         """
-        self.room_max_height =len(data)
-        self.room_max_width = max([len(row) for row in data]) if self.room_max_height > 0 else 0
+        self.room_max_height = len(data)
+        self.room_max_width = max(
+            [len(row) for row in data]) if self.room_max_height > 0 else 0
         self.room = data
         self.robot = robot
-        # Initialize minimum to 0 for easier handling clik events (avoiding exceptins).
+        # Initialize minimum to 0 for easier handling clik events (avoiding
+        # exceptins).
         self.minimum = 0
         self.start = self.findStart()
         # This automatically calls paintEvent()
         self.update()
-
 
     # Override default function for drawing widget.
     def paintEvent(self, e):
@@ -106,17 +108,18 @@ class Room(QWidget):
             # Drawing all squares.
             for i in range(len(self.room)):
                 for j in range(len(self.room[i])):
-                    self.drawSquare(painter, self.minimum*j, self.minimum*i, self.switch[self.room[i][j]])
+                    self.drawSquare(painter, self.minimum * j,
+                                    self.minimum * i, self.switch[self.room[i][j]])
 
             # Drawing robot movement.
             pen = QPen(QColor(0xDAAA99), 3, Qt.DashLine)
             painter.setPen(pen)
-            self.middle = self.minimum/2
-            for i,j in zip(self.robot[:-1], self.robot[1:]):
-                self.drawMovement(painter, self.minimum*i[1], self.minimum*i[0], self.minimum*j[1], self.minimum*j[0])
+            self.middle = self.minimum / 2
+            for i, j in zip(self.robot[:-1], self.robot[1:]):
+                self.drawMovement(painter, self.minimum * i[1], self.minimum * i[
+                                  0], self.minimum * j[1], self.minimum * j[0])
 
             painter.end()
-
 
     def drawMovement(self, painter, x1, y1, x2, y2):
         """
@@ -141,8 +144,8 @@ class Room(QWidget):
             Coordinate on current widget on which y-coordinate of
             square where robot ended.
         """
-        painter.drawLine(x1+self.middle, y1+self.middle, x2+self.middle, y2+self.middle)
-
+        painter.drawLine(x1 + self.middle, y1 + self.middle,
+                         x2 + self.middle, y2 + self.middle)
 
     def drawSquare(self, painter, x, y, hex_color):
         """
@@ -170,7 +173,6 @@ class Room(QWidget):
         #painter.drawRect(x, y, self.block_width, self.block_height)
         painter.drawRect(x, y, self.minimum, self.minimum)
 
-
     def findStart(self):
         """ Metod for looking if start postion for robot has been selected. """
         for row in self.room:
@@ -183,9 +185,8 @@ class Room(QWidget):
     def delete_old_robot_position(self):
         """Replace all robot positions on the map with unvisited."""
         for row in range(len(self.room)):
-            self.room[row] = [Symbol.UNVISITED.value if x==Symbol.ROBOT.value
-                                                    else x for x in self.room[row]]
-
+            self.room[row] = [Symbol.UNVISITED.value if x == Symbol.ROBOT.value
+                              else x for x in self.room[row]]
 
     # Override what happen on click.
     def mousePressEvent(self, event):
@@ -195,27 +196,27 @@ class Room(QWidget):
         mark new start position or make/remove obstacles.
         """
         if(event.button() == Qt.LeftButton and self.minimum > 0):
-            x = event.pos().y()//self.minimum
-            y = event.pos().x()//self.minimum
+            x = event.pos().y() // self.minimum
+            y = event.pos().x() // self.minimum
             if (x >= self.room_max_height or y >= len(self.room[x])):
                 return
 
             # If we are in mode 1 and we clicked on empty place on map.
             if(self.mode == 1 and
-                (self.room[x][y] == Symbol.UNVISITED.value or self.room[x][y] == Symbol.VISITED.value)):
+                    (self.room[x][y] == Symbol.UNVISITED.value or self.room[x][y] == Symbol.VISITED.value)):
                 self.delete_old_robot_position()
                 self.room[x][y] = Symbol.ROBOT.value
-                self.robot = [(x,y)]
+                self.robot = [(x, y)]
                 self.start = True
 
-            # If we are in mode 2 and we clicked on empty or place with obstacle.
+            # If we are in mode 2 and we clicked on empty or place with
+            # obstacle.
             elif(self.mode == 2):
                 if(self.room[x][y] == Symbol.UNVISITED.value or self.room[x][y] == Symbol.VISITED.value):
                     self.room[x][y] = Symbol.OBSTACLE.value
                 elif(self.room[x][y] == Symbol.OBSTACLE.value):
                     self.room[x][y] = Symbol.UNVISITED.value
             self.update()
-
 
     def detect_room(self, sight_distance):
         """
@@ -238,32 +239,33 @@ class Room(QWidget):
         """
 
         position = self.robot[-1]
-        sight_distance_quad = sight_distance*sight_distance
+        sight_distance_quad = sight_distance * sight_distance
 
         # Find first and last row in the map for robots position.
-        minimal_x = max(position[0]-sight_distance, 0)
-        maximal_x = min(position[0]+sight_distance+1, self.room_max_height)
-        minimal_y = max(position[1]-sight_distance, 0)
+        minimal_x = max(position[0] - sight_distance, 0)
+        maximal_x = min(position[0] + sight_distance + 1, self.room_max_height)
+        minimal_y = max(position[1] - sight_distance, 0)
 
         number_of_rows = maximal_x - minimal_x
         detected = {}
 
-
         # For each row that robot can see find every cell that she can see.
-        # TODO: Maybe change something so robot can't see through wall. 
+        # TODO: Maybe change something so robot can't see through wall.
         for i in range(minimal_x, maximal_x):
             # Each rom can have different size.
-            maximal_y = min(position[1]+sight_distance+1, len(self.room[i]))
+            maximal_y = min(
+                position[1] + sight_distance + 1, len(self.room[i]))
             initialized = False
             # For each cell check if it is inside line of sight.
             for j in range(minimal_y, maximal_y):
-                if((position[0]-i)*(position[0]-i) + (position[1]-j)*(position[1]-j) <= sight_distance_quad):
-                    # If this is first cell in row that has been seen initialize new key in dictionary.
+                if((position[0] - i) * (position[0] - i) + (position[1] - j) * (position[1] - j) <= sight_distance_quad):
+                    # If this is first cell in row that has been seen
+                    # initialize new key in dictionary.
                     if(initialized == False):
                         y = j
                         initialized = True
-                        detected[(i,y)] = []
-                    detected[(i,y)].append(self.room[i][j])
+                        detected[(i, y)] = []
+                    detected[(i, y)].append(self.room[i][j])
 
         return detected
 
