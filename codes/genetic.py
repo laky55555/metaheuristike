@@ -71,6 +71,8 @@ class Genetic():
 
         return mini_paths
 
+
+
     # sum of euclidean distances between neighbouring positions in mini path
     def mini_path_distance(self, mini_path):
         distance = 0
@@ -79,7 +81,7 @@ class Genetic():
         return distance
 
     # number of uncleaned positions in mini path
-    def mini_path_uncleaned_cells(self, mini_path):
+    def mini_path_consecutive_uncleaned_cells(self, mini_path):
         free = 0
         for index, postion in enumerate(mini_path[1:]):
             # print (i,j)
@@ -87,6 +89,15 @@ class Genetic():
                 free += 1
             else:
                 return free
+        return free
+
+    def mini_path_uncleaned_cells(self, mini_path):
+        free = 0
+        for index, postion in enumerate(mini_path[1:]):
+            # print (i,j)
+            if(self.discovered_space[postion[0]][postion[1]] == '.' and mini_path.index(postion) > index):
+                free += 1
+        print('broj neociscenih')
         return free
 
     # sum of euclidean distance between robot position and each position in mini path
@@ -100,15 +111,17 @@ class Genetic():
 
 
     def calculate_fitness_function(self, mini_path, debug = False):
-        a = -0.4
-        b = 2
-        c = 0.75
+        a = 1
+        b = 20
+        c = 10
+        d = 1
         if(debug):
             print("Udaljenost koju je robot prosao " + str(a*self.mini_path_distance(mini_path)))
-            print("Broj neocisceno " + str(b*self.mini_path_uncleaned_cells(mini_path)))
+            print("Broj uzastopnih neocisceno " + str(b*self.mini_path_consecutive_uncleaned_cells(mini_path)))
+            print("Broj ukupno neociscenih " + str(b*self.mini_path_uncleaned_cells(mini_path)))
             print("Razlika pocetne i svih pozicija " + str(c*self.mini_path_sum_distance(mini_path)))
-        return (a*self.mini_path_distance(mini_path) + b*self.mini_path_uncleaned_cells(mini_path)
-                + c*self.mini_path_sum_distance(mini_path))
+        return (a*self.mini_path_distance(mini_path) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
+                 + c*self.mini_path_uncleaned_cells(mini_path) + d*self.mini_path_sum_distance(mini_path))
 
 
     #TODO: napraviti da se ne ostaje u istom genu npr (1,1) -> (1,2) -> (2,2) u (1,1) -> (2,2) -> (2,2)
@@ -181,7 +194,7 @@ class Genetic():
 
     def mutationVersion2(self, mini_path):
         genes_for_mutation = self.find_mutable_genes(mini_path)
-        i = 1,
+        i = 1
         # for each gene generate random number from [0,1], if number is less than self.mutation_probability mutate gene
         while i < self.length_of_mini_path+1:
             rand = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
