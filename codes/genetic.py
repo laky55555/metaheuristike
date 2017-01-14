@@ -3,6 +3,7 @@ from random import sample, choice, random
 import itertools
 import os
 from copy import deepcopy
+from math import fabs
 
 #a = new Genetski([],(0,0))
 #[[(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
@@ -97,7 +98,6 @@ class Genetic():
             # print (i,j)
             if(self.discovered_space[postion[0]][postion[1]] == '.' and mini_path.index(postion) > index):
                 free += 1
-        print('broj neociscenih')
         return free
 
     # sum of euclidean distance between robot position and each position in mini path
@@ -111,17 +111,20 @@ class Genetic():
 
 
     def calculate_fitness_function(self, mini_path, debug = False):
-        a = 1
-        b = 20
-        c = 10
-        d = 1
+        a = -3
+        b = 5
+        c = 2
+        d = 2
         if(debug):
+
             print("Udaljenost koju je robot prosao " + str(a*self.mini_path_distance(mini_path)))
             print("Broj uzastopnih neocisceno " + str(b*self.mini_path_consecutive_uncleaned_cells(mini_path)))
-            print("Broj ukupno neociscenih " + str(b*self.mini_path_uncleaned_cells(mini_path)))
-            print("Razlika pocetne i svih pozicija " + str(c*self.mini_path_sum_distance(mini_path)))
-        return (a*self.mini_path_distance(mini_path) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
-                 + c*self.mini_path_uncleaned_cells(mini_path) + d*self.mini_path_sum_distance(mini_path))
+            #print("Broj ukupno neociscenih " + str(c*self.mini_path_uncleaned_cells(mini_path)))
+
+            # sto veca to manje skretanja
+            print("Razlika pocetne i svih pozicija " + str(d*self.mini_path_sum_distance(mini_path)))
+        return (a * fabs(self.mini_path_distance(mini_path ) - 5) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
+                 + d*self.mini_path_sum_distance(mini_path))
 
 
     #TODO: napraviti da se ne ostaje u istom genu npr (1,1) -> (1,2) -> (2,2) u (1,1) -> (2,2) -> (2,2)
@@ -157,15 +160,7 @@ class Genetic():
 
         new_gene = sample(genes_for_mutation[index-1], 1)[0] # choosing position that replaces previously chosen
 
-
-        # #TODO: tu treba maknuti mini_path2
-        # mini_path2 = mini_path[:]
-        # mini_path2[index] = new_gene
-        #
-        # return mini_path2
-
         mini_path[index] = new_gene
-        #return mini_path2
 
 
 ###################################################
@@ -232,23 +227,37 @@ class Genetic():
 
 
     def crossover_one_point(self, parent1, parent2):
+
         new_children1 = []
+        point_options = []
         # if random number is higher than crossover probability place parents directly into the new genration
         if self.crossover_probability < int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1):
             new_children1.extend([parent1, parent2])
             return new_children1
-        point_options = list(range(1,6))
+
+        for point_of_crossing in range(1,6):
+            if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
+                parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
+                    point_options.append(point_of_crossing)
+
+        # if there are no points for crossover return None
+        if not point_options:
+            # print("NEMA KRIZANJA")
+            return None
+
         # choosing random point of crossover
         point_of_crossing = choice(point_options)
-        # TODO: ako nije ponovno pogadjat point_of_crossing ili proglasit neuspjelim??
-        if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
-            parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
-            child1 = parent1[0:point_of_crossing]
-            child2 = parent2[0:point_of_crossing]
-            child1.extend(parent2[point_of_crossing:len(parent2)])
-            child2.extend(parent1[point_of_crossing:len(parent1)])
-            return new_children1.extend([child1, child2])
-        return None
+        # print(point_of_crossing)
+        # print("KRIZANJE")
+        # self.isprintaj_mini_path(parent1)
+        # self.isprintaj_mini_path(parent2)
+        child1 = parent1[0:point_of_crossing]
+        child2 = parent2[0:point_of_crossing]
+        child1.extend(parent2[point_of_crossing:len(parent2)])
+        child2.extend(parent1[point_of_crossing:len(parent1)])
+        # self.isprintaj_mini_path(child1)
+        # self.isprintaj_mini_path(child2)
+        return new_children1.extend([child1, child2])
 
 
 
@@ -260,6 +269,8 @@ class Genetic():
     def isprintaj_mini_path(self, mini_path):
         print(mini_path)
         print("Vrijednost = " + str(self.calculate_fitness_function(mini_path, True)) + " Iter = " + str(self.iteracija))
+        # print(" " + str(self.calculate_fitness_function(mini_path, False)) + " " + str(self.mini_path_uncleaned_cells(mini_path))
+        #      + " " + str(self.mini_path_distance(mini_path)) + " " + str(self.mini_path_sum_distance(mini_path)))
         debug = deepcopy(self.discovered_space)
         for i, row in enumerate(debug):
             for j, element in enumerate(row):
@@ -281,7 +292,7 @@ class Genetic():
             value = self.calculate_fitness_function(mini_path)
             fitness_sum += value
             dictionary_fitness_values[index] = value
-            self.isprintaj_mini_path(mini_path)
+            #self.isprintaj_mini_path(mini_path)
 
         # scale fitness values into interval [0, 1]
         # e.g.
@@ -357,20 +368,53 @@ class Genetic():
 
         return new_generation
 
+    def make_one_iteration_non_elitistic(self, current_population):
+        new_generation = []
+        i = 0
+        # sort current population -> highest fitness first
+        current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
+        # del current_population[:2]
+
+        # TODO: sort inside place_chromosomes_fitness_into_interval ?
+        dictionary_fitness_values = self.place_chromosomes_fitness_into_interval(current_population)
+
+        while i < (int(self.population_size/2)):
+            # selecting parents
+            parent_one = current_population[self.select_chromosome(dictionary_fitness_values)]
+            parent_two = current_population[self.select_chromosome(dictionary_fitness_values)]
+
+            # crossover
+            new_children = self.crossover_one_point(parent_one, parent_two)
+            if(new_children != None):
+                # if crossover was successful mutate children
+                self.mutationVersion2(new_children[0])
+                self.mutationVersion2(new_children[1])
+                # add children to the new generation
+                new_generation.extend(new_children)
+                i += 1
+            # TODO: rijetko se dogode krizanja!
+            # else:
+                # print ("NIJE uspilo")
+
+        return new_generation
+
 
     def next_move(self):
         # generate initial population
         current_population = self.generate_initial_population()
 
         self.iteracija = 0
+        for mini_path in current_population:
+            self.isprintaj_mini_path(mini_path)
+
 
         for i in range(self.number_of_iterations):
             current_population = self.make_one_iteration(current_population)
             self.iteracija += 1
 
         current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
-        for mini_path in current_population:
-            self.isprintaj_mini_path(mini_path)
+        # for mini_path in current_population:
+        #     self.isprintaj_mini_path(mini_path)
 
         # first position from the best mini_path from the last generation
         next_move = current_population[0][1]
@@ -490,17 +534,76 @@ for i in range(10):
 #     for j in range(0,10):
 #         line += ("(" + str(i) + "," + str(j) + ") ")
 #     print(line)
-
-
-
-mini_paths = [
-    [(5, 1), (4, 1), (3, 1), (2, 1), (1, 1), (1, 2)],
-    [(5, 1), (4, 2), (3, 2), (), (), ()],
-    [(5, 1), (), (), (), (), ()],
-    [(5, 1), (), (), (), (), ()],
-    [(5, 1), (), (), (), (), ()],
-    [(5, 1), (), (), (), (), ()]
-]
+#
+# a = ([['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
+#         ['#', '.', '.', '.', '.', '.', '.', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
+#         ['#', '0', '.', '.', '.', '.', '.', '.', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
+#         ['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#']])
+#
+# gen = Genetic(a, (2,1), 50, 5, 0.2, 0.8, 10)
+# gen.iteracija = 0
+#
+#
+#
+#
+# mini_paths = [
+#     [(2, 1), (1, 1), (1, 2), (2, 1), (2, 2), (2, 1)],
+#     [(2, 1), (1, 1), (1, 2), (2, 1), (1, 1), (2, 2)],
+#     [(2, 1), (1, 1), (2, 1), (1, 1), (1, 2), (2, 2)],
+#     [(2, 1), (1, 1), (2, 2), (1, 3), (2, 4), (1, 3)],
+#     [(2, 1), (2, 2), (1, 3), (1, 2), (1, 1), (2, 1)],
+#     [(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (1, 5)],
+#     [(2, 1), (2, 2), (2, 1), (2, 2), (1, 1), (2, 2)],
+#     [(2, 1), (2, 2), (2, 1), (2, 2), (1, 3), (2, 2)],
+#     [(2, 1), (1, 2), (2, 3), (2, 2), (1, 3), (1, 2)],
+#     [(2, 1), (2, 2), (2, 1), (1, 2), (2, 2), (1, 1)],
+#     [(2, 1), (1, 2), (2, 2), (1, 1), (2, 1), (1, 2)],
+#     [(2, 1), (1, 2), (1, 1), (2, 2), (2, 3), (1, 2)],
+#     [(2, 1), (2, 2), (2, 1), (1, 1), (2, 2), (2, 3)],
+#     [(2, 1), (2, 2), (1, 2), (2, 2), (1, 3), (1, 2)],
+#     [(2, 1), (1, 1), (2, 1), (1, 1), (2, 1), (1, 1)],
+#     [(2, 1), (2, 2), (1, 2), (2, 3), (1, 2), (2, 1)],
+#     [(2, 1), (2, 2), (1, 1), (1, 2), (2, 2), (2, 1)],
+#     [(2, 1), (1, 2), (1, 1), (1, 2), (1, 1), (1, 2)],
+#     [(2, 1), (1, 1), (1, 2), (1, 3), (2, 2), (2, 3)],
+#     [(2, 1), (1, 2), (2, 3), (1, 4), (2, 3), (2, 2)],
+#     [(2, 1), (1, 2), (2, 2), (1, 3), (2, 3), (2, 2)],
+#     [(2, 1), (1, 1), (2, 2), (1, 1), (2, 2), (1, 3)],
+#     [(2, 1), (1, 2), (1, 1), (2, 2), (1, 3), (2, 3)],
+#     [(2, 1), (2, 2), (1, 3), (1, 4), (1, 3), (1, 4)],
+#     [(2, 1), (1, 2), (2, 3), (1, 4), (2, 4), (2, 5)],
+#     [(2, 1), (2, 2), (2, 3), (2, 4), (2, 3), (1, 3)],
+#     [(2, 1), (1, 2), (2, 1), (1, 1), (1, 2), (2, 1)],
+#     [(2, 1), (1, 2), (2, 3), (1, 3), (2, 4), (1, 4)],
+#     [(2, 1), (1, 2), (2, 2), (1, 2), (1, 3), (2, 3)],
+#     [(2, 1), (1, 2), (2, 2), (1, 1), (2, 1), (1, 2)],
+#     [(2, 1), (1, 1), (2, 1), (1, 1), (2, 2), (1, 1)],
+#     [(2, 1), (1, 2), (1, 3), (2, 3), (1, 3), (2, 4)],
+#     [(2, 1), (1, 2), (2, 2), (1, 1), (2, 2), (2, 1)],
+#     [(2, 1), (1, 1), (2, 1), (1, 2), (1, 3), (1, 4)],
+#     [(2, 1), (1, 1), (2, 1), (2, 2), (1, 2), (1, 3)],
+#     [(2, 1), (1, 1), (2, 1), (1, 2), (1, 1), (2, 2)],
+#     [(2, 1), (1, 2), (2, 2), (1, 1), (1, 2), (1, 3)],
+#     [(2, 1), (1, 1), (1, 2), (1, 1), (1, 2), (1, 3)],
+#     [(2, 1), (2, 2), (2, 3), (2, 2), (1, 2), (2, 1)],
+#     [(2, 1), (2, 2), (2, 1), (2, 2), (2, 1), (1, 1)],
+#     [(2, 1), (1, 2), (2, 1), (1, 2), (2, 3), (1, 2)],
+#     [(2, 1), (1, 2), (2, 2), (2, 3), (1, 3), (2, 2)],
+#     [(2, 1), (1, 1), (2, 2), (1, 2), (1, 1), (1, 2)],
+#     [(2, 1), (2, 2), (2, 3), (1, 4), (2, 3), (1, 3)],
+#     [(2, 1), (2, 2), (1, 2), (1, 1), (2, 1), (1, 1)],
+#     [(2, 1), (2, 2), (2, 1), (1, 2), (2, 2), (2, 1)],
+#     [(2, 1), (2, 2), (2, 3), (1, 4), (2, 3), (2, 2)],
+#     [(2, 1), (1, 2), (1, 3), (1, 4), (1, 3), (1, 2)],
+#     [(2, 1), (1, 2), (1, 1), (1, 2), (1, 1), (2, 1)],
+#     [(2, 1), (2, 2), (1, 2), (1, 3), (1, 2), (1, 1)]
+#
+# ]
+#
+# mini_paths = sorted(mini_paths, key =  gen.calculate_fitness_function, reverse=True)
+#
+# for mini_path in mini_paths:
+#     gen.isprintaj_mini_path(mini_path)
 
 
 # (0,0) (0,1) (0,2) (0,3) (0,4) (0,5) (0,6) (0,7) (0,8) (0,9)
