@@ -16,7 +16,7 @@ from math import fabs
 
 class Genetic():
 
-    def __init__(self, discovered_space, current_position, population_size, length_of_mini_path,
+    def __init__(self, discovered_space, current_position, previous_position, population_size, length_of_mini_path,
                  mutation_probability, crossover_probability, number_of_iterations):
         self.discovered_space = discovered_space
         # self.current_position_x = current_position[0]
@@ -27,6 +27,7 @@ class Genetic():
         self.mutation_probability = mutation_probability
         self.crossover_probability = crossover_probability
         self.number_of_iterations = number_of_iterations
+        self.previous_position = previous_position
 
 
     def neighbours_of(self, position):
@@ -109,22 +110,83 @@ class Genetic():
             distance += sqrt((j - robot_position_j)**2 + (i - robot_position_i)**2)
         return distance
 
+    def check_vertical_boundary(self):
+        position_x = self.current_position[0]
+        position_y = self.current_position[1]
+        if (self.discovered_space[position_x-1][position_y-1] == 'o' or self.discovered_space[position_x-1][position_y-1] == '#'
+            and self.discovered_space[position_x-1][position_y] == 'o' or self.discovered_space[position_x-1][position_y] == '#'
+            and self.discovered_space[position_x-1][position_y+1] == 'o' or self.discovered_space[position_x-1][position_y+1] == '#' ):
+            return True
+        if (self.discovered_space[position_x+1][position_y-1] == 'o' or self.discovered_space[position_x+1][position_y-1] == '#'
+            and self.discovered_space[position_x+1][position_y] == 'o' or self.discovered_space[position_x+1][position_y] == '#'
+            and self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#' ):
+            return True
+        return False
+
+    def check_horizontal_boundary(self):
+        position_x = self.current_position[0]
+        position_y = self.current_position[1]
+        if (self.discovered_space[position_x-1][position_y-1] == 'o' or self.discovered_space[position_x-1][position_y-1] == '#'
+            and self.discovered_space[position_x][position_y-1] == 'o' or self.discovered_space[position_x][position_y-1] == '#'
+            and self.discovered_space[position_x+1][position_y-1] == 'o' or self.discovered_space[position_x+1][position_y-1] == '#' ):
+            return True
+        if (self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#'
+            and self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#'
+            and self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#' ):
+            return True
+        return False
+
+
+
+    def mini_path_direction_bounded(self, mini_path):
+
+        if self.previous_position[0] == mini_path[0][0] and mini_path[0][0] == mini_path[1][0]:
+            direction = True
+            if self.check_horizontal_boundary():
+                return (True, True)
+            else:
+                return (True, False)
+        elif self.previous_position[1] == mini_path[0][1] and mini_path[0][0] == mini_path[1][1]:
+            if self.check_vertical_boundary():
+                return (True, True)
+            else:
+                return (True, False)
+
+        return (False, None)
 
     def calculate_fitness_function(self, mini_path, debug = False):
-        a = -3
-        b = 5
-        c = 2
-        d = 2
+
+        # TODO: if lost!! find nearest uncleaned
+        # ne bi se smjelo dogadjat da kad u kutu ima neociscena pozicija da ne ode u nju nego dijagonalno
+
+        a = 1
+        b = 2
+        # c = 2
+        d = 1
+        reward_direction = 0
+        punish_repeating = 0
+        reward_next_uncleand = 0
+
+        if self.previous_position != None:
+            if self.mini_path_direction_bounded(mini_path)[0]:
+                reward_direction = 5
+
+        if self.discovered_space[mini_path[1][0]][mini_path[1][1]] == 'o':
+            punish_repeating = -5
+
+        # if self.discovered_space[mini_path[1][0]][mini_path[1][1]] == '.':
+        #     reward_next_uncleand = 5
+
+
         if(debug):
 
             print("Udaljenost koju je robot prosao " + str(a*self.mini_path_distance(mini_path)))
             print("Broj uzastopnih neocisceno " + str(b*self.mini_path_consecutive_uncleaned_cells(mini_path)))
             #print("Broj ukupno neociscenih " + str(c*self.mini_path_uncleaned_cells(mini_path)))
 
-            # sto veca to manje skretanja
             print("Razlika pocetne i svih pozicija " + str(d*self.mini_path_sum_distance(mini_path)))
-        return (a * fabs(self.mini_path_distance(mini_path ) - 5) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
-                 + d*self.mini_path_sum_distance(mini_path))
+        return (a * self.mini_path_distance(mini_path) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
+                 + d*self.mini_path_sum_distance(mini_path) + reward_direction + punish_repeating)
 
 
     #TODO: napraviti da se ne ostaje u istom genu npr (1,1) -> (1,2) -> (2,2) u (1,1) -> (2,2) -> (2,2)
@@ -225,50 +287,60 @@ class Genetic():
         return mini_path
 
 
-
-    def crossover_one_point(self, parent1, parent2):
+    # TODO: sta kad su isti
+    # mozda kao djecu vratit najbolja 2
+    def crossover_one_point(self, parent1, parent2, Debug = False):
+        if (Debug):
+            print('_______________________________KRIZANJE________________________')
 
         new_children1 = []
         point_options = []
         # if random number is higher than crossover probability place parents directly into the new genration
         if self.crossover_probability < int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1):
+            if (Debug):
+                print("IDU DIREKTNO")
             new_children1.extend([parent1, parent2])
             return new_children1
 
-        for point_of_crossing in range(1,6):
+        # nema smisla minjat prvu poziciju jer dobijemo dva ista puta
+        for point_of_crossing in range(2,6):
             if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
                 parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
                     point_options.append(point_of_crossing)
 
         # if there are no points for crossover return None
         if not point_options:
-            # print("NEMA KRIZANJA")
+            if (Debug):
+                print("NEMA MOGUCNOSTI KRIZANJA")
             return None
 
         # choosing random point of crossover
         point_of_crossing = choice(point_options)
-        # print(point_of_crossing)
-        # print("KRIZANJE")
-        # self.isprintaj_mini_path(parent1)
-        # self.isprintaj_mini_path(parent2)
+        print('Tocka krizanja: ' + str(point_of_crossing))
+        if (Debug):
+            self.isprintaj_mini_path(parent1)
+            self.isprintaj_mini_path(parent2)
         child1 = parent1[0:point_of_crossing]
         child2 = parent2[0:point_of_crossing]
         child1.extend(parent2[point_of_crossing:len(parent2)])
         child2.extend(parent1[point_of_crossing:len(parent1)])
-        # self.isprintaj_mini_path(child1)
-        # self.isprintaj_mini_path(child2)
+        if (Debug):
+            print('--------------> DJECA')
+            self.isprintaj_mini_path(child1)
+            self.isprintaj_mini_path(child2)
         return new_children1.extend([child1, child2])
 
 
 
     def generate_initial_population(self):
+        # TODO: vidit ima li ravnih i onda izgenerirat ostale
         initial_population = self.generate_mini_paths(self.population_size, self.length_of_mini_path, self.current_position)
         return initial_population
 
 
     def isprintaj_mini_path(self, mini_path):
         print(mini_path)
-        print("Vrijednost = " + str(self.calculate_fitness_function(mini_path, True)) + " Iter = " + str(self.iteracija))
+        print("Vrijednost = " + str(self.calculate_fitness_function(mini_path)) + " Iter = " + str(self.iteracija))
         # print(" " + str(self.calculate_fitness_function(mini_path, False)) + " " + str(self.mini_path_uncleaned_cells(mini_path))
         #      + " " + str(self.mini_path_distance(mini_path)) + " " + str(self.mini_path_sum_distance(mini_path)))
         debug = deepcopy(self.discovered_space)
@@ -289,7 +361,8 @@ class Genetic():
         # create dictionary with indexes of mini paths as keys and theirs fitnesses as values
         # e.g.
         for index, mini_path in enumerate(current_population):
-            value = self.calculate_fitness_function(mini_path)
+            self.isprintaj_mini_path(mini_path)
+            value = self.calculate_fitness_function(mini_path, True)
             fitness_sum += value
             dictionary_fitness_values[index] = value
             #self.isprintaj_mini_path(mini_path)
@@ -311,7 +384,7 @@ class Genetic():
         min_value = 99999
         max_value = -1
         for index, mini_path in enumerate(current_population):
-            value = self.calculate_fitness_function(mini_path)
+            value = self.calculate_fitness_function(mini_path, True)
             if max_value < value: max_value = value
             if min_value > value: max_value = value
             dictionary_fitness_values[index] = value
@@ -401,11 +474,12 @@ class Genetic():
 
     def next_move(self):
         # generate initial population
+
         current_population = self.generate_initial_population()
 
         self.iteracija = 0
-        for mini_path in current_population:
-            self.isprintaj_mini_path(mini_path)
+        # for mini_path in current_population:
+        #     self.isprintaj_mini_path(mini_path)
 
 
         for i in range(self.number_of_iterations):
@@ -413,8 +487,9 @@ class Genetic():
             self.iteracija += 1
 
         current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
-        # for mini_path in current_population:
-        #     self.isprintaj_mini_path(mini_path)
+
+        for mini_path in current_population:
+            self.isprintaj_mini_path(mini_path)
 
         # first position from the best mini_path from the last generation
         next_move = current_population[0][1]

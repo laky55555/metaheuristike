@@ -23,6 +23,7 @@ class Robot(object):
         self.sight_distance = sight_distance
         self.room_widget = room_widget
         self.full_room = [[None] * len(i) for i in self.room_widget.room]
+        self.previous_position = None
 
     def move_one(self):
         """
@@ -50,8 +51,15 @@ class Robot(object):
 
         # Initialize genetic algorithm.
         # Genetic(room, current_position, population_size, mini_path_len, mutation_probability, crossover_probability, number_of_iterations)
-        gen = Genetic(self.detected_room, current_position[
-                      0], 6, 5, 0.2, 0.85, 4)
+        print(current_position)
+        if self.previous_position == None:
+            gen = Genetic(self.detected_room, current_position[
+                      0], None, 50, 5, 0.2, 0.85, 5)
+        else:
+            gen = Genetic(self.detected_room, current_position[
+                      0], self.previous_position, 50, 5, 0.2, 0.85, 5)
+
+        self.previous_position = current_position[0]
         self.room_widget.do_move(gen.next_move())
 
         return False
