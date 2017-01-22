@@ -12,6 +12,8 @@ class StartCleaningWidget(QWidget):
     has been set, enable running robot.
     """
 
+    # TODO: selecting parameters for genetic algorithm
+
     def __init__(self, parent=None, room_widget=None):
         """
         Initializing room_widget and button for start cleaning, and

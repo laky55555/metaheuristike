@@ -61,6 +61,12 @@ class Genetic():
         # key -> position in mini path, value -> set of avaliable positions
         saved_neighbours = {}
 
+        x = robot_position[0]
+        y = robot_position[1]
+
+        # TODO: generirat ravno ako je moguce
+        # if (self.discovered_space[x][j+1] == '.')
+
         for j in range(length_of_mini_path):
             for i in range(number_of_mini_paths):
                 if (mini_paths[i][j]) in saved_neighbours:  # neighbours already saved
@@ -169,7 +175,7 @@ class Genetic():
 
         if self.previous_position != None:
             if self.mini_path_direction_bounded(mini_path)[0]:
-                reward_direction = 5
+                reward_direction = 10
 
         if self.discovered_space[mini_path[1][0]][mini_path[1][1]] == 'o':
             punish_repeating = -5
@@ -185,7 +191,7 @@ class Genetic():
             #print("Broj ukupno neociscenih " + str(c*self.mini_path_uncleaned_cells(mini_path)))
 
             print("Razlika pocetne i svih pozicija " + str(d*self.mini_path_sum_distance(mini_path)))
-        return (a * self.mini_path_distance(mini_path) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
+        return (a * fabs(self.mini_path_distance(mini_path)-5) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
                  + d*self.mini_path_sum_distance(mini_path) + reward_direction + punish_repeating)
 
 
@@ -427,7 +433,7 @@ class Genetic():
             parent_two = current_population[self.select_chromosome(dictionary_fitness_values)]
 
             # crossover
-            new_children = self.crossover_one_point(parent_one, parent_two)
+            new_children = self.crossover_one_point(parent_one, parent_two, True)
             if(new_children != None):
                 # if crossover was successful mutate children
                 self.mutationVersion2(new_children[0])
@@ -476,7 +482,7 @@ class Genetic():
         # generate initial population
 
         current_population = self.generate_initial_population()
-
+        print('////////////////////////////////   NOVI POTEZ   /////////////////////////////////')
         self.iteracija = 0
         # for mini_path in current_population:
         #     self.isprintaj_mini_path(mini_path)
