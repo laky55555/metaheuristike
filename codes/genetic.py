@@ -39,7 +39,7 @@ class Genetic():
         return neighbours
 
     # positions that robot can move to
-    def get_available_positions(self, position):
+    def get_available_positions(self, position, restricted = False):
         positions = set()
         for i, j in self.neighbours_of(position):
             # out of reach
@@ -47,8 +47,12 @@ class Genetic():
                 continue
             if(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
                 continue
-            if(self.discovered_space[i][j] == '#' or self.discovered_space[i][j] == 'x'):
-                continue
+            if restricted:
+                if(self.discovered_space[i][j] == '#' or self.discovered_space[i][j] == 'o' or self.discovered_space[i][j] == 'x'):
+                    continue
+            else:
+                if(self.discovered_space[i][j] == '#' or self.discovered_space[i][j] == 'x'):
+                    continue
             positions.add((i, j))
             # # print ("position " + str(i) + str(j) + " bla " )
             # # print (self.discovered_space[i][j])
@@ -61,19 +65,20 @@ class Genetic():
         # key -> position in mini path, value -> set of avaliable positions
         saved_neighbours = {}
 
-        x = robot_position[0]
-        y = robot_position[1]
 
         # TODO: generirat ravno ako je moguce
         # if (self.discovered_space[x][j+1] == '.')
 
         for j in range(length_of_mini_path):
             for i in range(number_of_mini_paths):
-                if (mini_paths[i][j]) in saved_neighbours:  # neighbours already saved
-                    positions = saved_neighbours[mini_paths[i][j] ]
+                if j == 0:
+                    positions = self.get_available_positions(mini_paths[i][j], True)
                 else:
-                    positions = self.get_available_positions(mini_paths[i][j])
-                    saved_neighbours[mini_paths[i][j]] = positions
+                    if (mini_paths[i][j]) in saved_neighbours:  # neighbours already saved
+                        positions = saved_neighbours[mini_paths[i][j] ]
+                    else:
+                        positions = self.get_available_positions(mini_paths[i][j])
+                        saved_neighbours[mini_paths[i][j]] = positions
                 # choosing random next position in mini path from avaliable positions
                 mini_paths[i][j+1] = sample(positions, 1)[0] # j+1 -> leaving current robot position in mini paths
 
@@ -116,83 +121,122 @@ class Genetic():
             distance += sqrt((j - robot_position_j)**2 + (i - robot_position_i)**2)
         return distance
 
-    def check_vertical_boundary(self):
-        position_x = self.current_position[0]
-        position_y = self.current_position[1]
-        if (self.discovered_space[position_x-1][position_y-1] == 'o' or self.discovered_space[position_x-1][position_y-1] == '#'
-            and self.discovered_space[position_x-1][position_y] == 'o' or self.discovered_space[position_x-1][position_y] == '#'
-            and self.discovered_space[position_x-1][position_y+1] == 'o' or self.discovered_space[position_x-1][position_y+1] == '#' ):
-            return True
-        if (self.discovered_space[position_x+1][position_y-1] == 'o' or self.discovered_space[position_x+1][position_y-1] == '#'
-            and self.discovered_space[position_x+1][position_y] == 'o' or self.discovered_space[position_x+1][position_y] == '#'
-            and self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#' ):
-            return True
-        return False
-
-    def check_horizontal_boundary(self):
-        position_x = self.current_position[0]
-        position_y = self.current_position[1]
-        if (self.discovered_space[position_x-1][position_y-1] == 'o' or self.discovered_space[position_x-1][position_y-1] == '#'
-            and self.discovered_space[position_x][position_y-1] == 'o' or self.discovered_space[position_x][position_y-1] == '#'
-            and self.discovered_space[position_x+1][position_y-1] == 'o' or self.discovered_space[position_x+1][position_y-1] == '#' ):
-            return True
-        if (self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#'
-            and self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#'
-            and self.discovered_space[position_x+1][position_y+1] == 'o' or self.discovered_space[position_x+1][position_y+1] == '#' ):
-            return True
-        return False
 
 
-
-    def mini_path_direction_bounded(self, mini_path):
+    def mini_path_direction(self, mini_path):
 
         if self.previous_position[0] == mini_path[0][0] and mini_path[0][0] == mini_path[1][0]:
-            direction = True
-            if self.check_horizontal_boundary():
-                return (True, True)
-            else:
-                return (True, False)
+            return True
         elif self.previous_position[1] == mini_path[0][1] and mini_path[0][0] == mini_path[1][1]:
-            if self.check_vertical_boundary():
-                return (True, True)
-            else:
-                return (True, False)
+            return True
+        return False
 
-        return (False, None)
+    def check_wall(self, x, y):
+        if self.discovered_space[x][y] == '#' or self.discovered_space[x][y] == 'x':
+            return True
+        return False
+
+    def check_wall_around(self, mini_path, vertical = False):
+        wall_value = 0
+        x_1 = mini_path[0][0]
+        y_1 = mini_path[0][1]
+        x_2 = mini_path[1][0]
+        y_2 = mini_path[1][1]
+
+        if (vertical):
+            if self.check_wall(x_1+1, y_1) and self.check_wall(x_2+1, y_2) or self.check_wall(x_1-1, y_1) and self.check_wall(x_2-1, y_2):
+                wall_value = 1
+        else:
+            if self.check_wall(x_1, y_1+1) and self.check_wall(x_2, y_2+1) or self.check_wall(x_1, y_1-1) and self.check_wall(x_2, y_2-1):
+                wall_value = 1
+            # if ((self.discovered_space[x_1][y_1+1] == '#' and self.discovered_space[x_2][y_1+1] == '#' ) or
+            #     (self.discovered_space[x_1][y_1+1] == 'x' and self.discovered_space[x_2][y_1+1] == 'x')):
+            #     wall_value = 1
+            # if ((self.discovered_space[x_1][y_1-1] == '#' and self.discovered_space[x_2][y_1-1] == '#' ) or
+            #     (self.discovered_space[x_1][y_1-1] == 'x' and self.discovered_space[x_2][y_1-1] == 'x')):
+
+        return wall_value
+
+    def check_cleaned_cell(self, x, y):
+        if self.discovered_space[x][y] == 'o':
+            return True
+        return False
+
+
+    def check_cleaned_cells_around(self, mini_path, vertical = False):
+        cleaned_value = 0
+
+        x_1 = mini_path[0][0]
+        y_1 = mini_path[0][1]
+        x_2 = mini_path[1][0]
+        y_2 = mini_path[1][1]
+
+        if (vertical):
+            if self.check_cleaned_cell(x_1+1, y_1) and self.check_cleaned_cell(x_2+1, y_2) or self.check_cleaned_cell(x_1-1, y_1) and self.check_cleaned_cell(x_2-1, y_2):
+                cleaned_value = 1
+        else:
+            if self.check_cleaned_cell(x_1, y_1+1) and self.check_cleaned_cell(x_2, y_2+1) or self.check_cleaned_cell(x_1, y_1-1) and self.check_cleaned_cell(x_2, y_2-1):
+                cleaned_value = 1
+
+        # if (vertical):
+        #     if self.discovered_space[x_1+1][y_1] == 'o'  and self.discovered_space[x_2+1][y_2] == 'o':
+        #         wall_value = 1
+        #     if self.discovered_space[x_1-1][y_1] == 'o' and self.discovered_space[x_2-1][y_2] == 'o':
+        #         cleaned_value = 1
+        #
+        # else:
+        #     if self.discovered_space[x_1][y_1+1] == 'o' and self.discovered_space[x_2][y_2+1] == 'o':
+        #         wall_value = 1
+        #     if self.discovered_space[x_1][y_1-1] == 'o' and self.discovered_space[x_2][y_2-1] == 'o':
+
+        return cleaned_value
+
 
     def calculate_fitness_function(self, mini_path, debug = False):
 
         # TODO: if lost!! find nearest uncleaned
-        # ne bi se smjelo dogadjat da kad u kutu ima neociscena pozicija da ne ode u nju nego dijagonalno
-
-        a = 1
-        b = 2
+        distance_koef = 1
+        uncleaned_koef = 0
         # c = 2
-        d = 1
-        reward_direction = 0
-        punish_repeating = 0
-        reward_next_uncleand = 0
+        sum_distance_koef = 1
+
+        direction = 0
+        direction_koef = 0
+
+        wall_value = 0
+        wall_koef = 10
+        cleaned_value = 0
+        cleaned_koef = 15
+
+
+        if (mini_path[0][0] == mini_path[1][0]):
+            wall_value = self.check_wall_around(mini_path, True)
+            cleaned_value = self.check_cleaned_cells_around(mini_path, True)
+
+        elif (mini_path[0][1] == mini_path[1][1]):
+            wall_value = self.check_wall_around(mini_path, False)
+            cleaned_value = self.check_cleaned_cells_around(mini_path, False)                
 
         if self.previous_position != None:
-            if self.mini_path_direction_bounded(mini_path)[0]:
-                reward_direction = 10
+            if self.mini_path_direction(mini_path):
+                direction = 1
 
-        if self.discovered_space[mini_path[1][0]][mini_path[1][1]] == 'o':
-            punish_repeating = -5
-
-        # if self.discovered_space[mini_path[1][0]][mini_path[1][1]] == '.':
-        #     reward_next_uncleand = 5
 
 
         if(debug):
-
-            print("Udaljenost koju je robot prosao " + str(a*self.mini_path_distance(mini_path)))
-            print("Broj uzastopnih neocisceno " + str(b*self.mini_path_consecutive_uncleaned_cells(mini_path)))
+            if wall_value:
+                print('IDE UZ ZID')
+            if cleaned_value:
+                print('IDE UZ OCISCENO')
+            if direction:
+                print('IDE PRAVOCRTNOOOO')
+            print("Udaljenost koju je robot prosao " + str(distance_koef*self.mini_path_distance(mini_path)))
+            print("Broj uzastopnih neocisceno " + str(uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)))
             #print("Broj ukupno neociscenih " + str(c*self.mini_path_uncleaned_cells(mini_path)))
 
-            print("Razlika pocetne i svih pozicija " + str(d*self.mini_path_sum_distance(mini_path)))
-        return (a * fabs(self.mini_path_distance(mini_path)-5) + b*self.mini_path_consecutive_uncleaned_cells(mini_path)
-                 + d*self.mini_path_sum_distance(mini_path) + reward_direction + punish_repeating)
+            print("Razlika pocetne i svih pozicija " + str(sum_distance_koef*self.mini_path_sum_distance(mini_path)))
+        return (distance_koef * fabs(self.mini_path_distance(mini_path)-5) + uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)
+                 + sum_distance_koef*self.mini_path_sum_distance(mini_path) + direction_koef*direction + wall_koef*wall_value + cleaned_koef*cleaned_value)
 
 
     #TODO: napraviti da se ne ostaje u istom genu npr (1,1) -> (1,2) -> (2,2) u (1,1) -> (2,2) -> (2,2)
@@ -222,7 +266,7 @@ class Genetic():
         genes_for_mutation = self.find_mutable_genes(mini_path)
 
         # je li isto prolazit svaki gen i gledat vjerojatnost? -> nope
-        index = choice(range(1, len(mini_path))) # choosing position to mutate
+        index = choice(range(2, len(mini_path))) # choosing position to mutate
         while len(genes_for_mutation[index-1]) < 1: # if set is empty
             index = choice(range(1, len(mini_path)))
 
@@ -257,7 +301,7 @@ class Genetic():
 
     def mutationVersion2(self, mini_path):
         genes_for_mutation = self.find_mutable_genes(mini_path)
-        i = 1
+        i = 2
         # for each gene generate random number from [0,1], if number is less than self.mutation_probability mutate gene
         while i < self.length_of_mini_path+1:
             rand = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
@@ -322,8 +366,9 @@ class Genetic():
 
         # choosing random point of crossover
         point_of_crossing = choice(point_options)
-        print('Tocka krizanja: ' + str(point_of_crossing))
+
         if (Debug):
+            print('Tocka krizanja: ' + str(point_of_crossing))
             self.isprintaj_mini_path(parent1)
             self.isprintaj_mini_path(parent2)
         child1 = parent1[0:point_of_crossing]
@@ -346,7 +391,6 @@ class Genetic():
 
     def isprintaj_mini_path(self, mini_path):
         print(mini_path)
-        print("Vrijednost = " + str(self.calculate_fitness_function(mini_path)) + " Iter = " + str(self.iteracija))
         # print(" " + str(self.calculate_fitness_function(mini_path, False)) + " " + str(self.mini_path_uncleaned_cells(mini_path))
         #      + " " + str(self.mini_path_distance(mini_path)) + " " + str(self.mini_path_sum_distance(mini_path)))
         debug = deepcopy(self.discovered_space)
@@ -356,6 +400,8 @@ class Genetic():
                     debug[i][j] = str(mini_path.index((i,j)))
         for row in debug:
             print(row)
+        print("Vrijednost = " + str(self.calculate_fitness_function(mini_path, True)) + " Iter = " + str(self.iteracija))
+
 
 ### Propotionate selection ###
     def place_chromosomes_fitness_into_interval(self, current_population):
@@ -368,7 +414,7 @@ class Genetic():
         # e.g.
         for index, mini_path in enumerate(current_population):
             self.isprintaj_mini_path(mini_path)
-            value = self.calculate_fitness_function(mini_path, True)
+            value = self.calculate_fitness_function(mini_path)
             fitness_sum += value
             dictionary_fitness_values[index] = value
             #self.isprintaj_mini_path(mini_path)
@@ -433,36 +479,6 @@ class Genetic():
             parent_two = current_population[self.select_chromosome(dictionary_fitness_values)]
 
             # crossover
-            new_children = self.crossover_one_point(parent_one, parent_two, True)
-            if(new_children != None):
-                # if crossover was successful mutate children
-                self.mutationVersion2(new_children[0])
-                self.mutationVersion2(new_children[1])
-                # add children to the new generation
-                new_generation.extend(new_children)
-                i += 1
-            # TODO: rijetko se dogode krizanja!
-            # else:
-                # print ("NIJE uspilo")
-
-        return new_generation
-
-    def make_one_iteration_non_elitistic(self, current_population):
-        new_generation = []
-        i = 0
-        # sort current population -> highest fitness first
-        current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
-        # del current_population[:2]
-
-        # TODO: sort inside place_chromosomes_fitness_into_interval ?
-        dictionary_fitness_values = self.place_chromosomes_fitness_into_interval(current_population)
-
-        while i < (int(self.population_size/2)):
-            # selecting parents
-            parent_one = current_population[self.select_chromosome(dictionary_fitness_values)]
-            parent_two = current_population[self.select_chromosome(dictionary_fitness_values)]
-
-            # crossover
             new_children = self.crossover_one_point(parent_one, parent_two)
             if(new_children != None):
                 # if crossover was successful mutate children
@@ -478,6 +494,7 @@ class Genetic():
         return new_generation
 
 
+
     def next_move(self):
         # generate initial population
 
@@ -490,12 +507,16 @@ class Genetic():
 
         for i in range(self.number_of_iterations):
             current_population = self.make_one_iteration(current_population)
+            current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
+            for mini_path in current_population:
+                self.isprintaj_mini_path(mini_path)
+
             self.iteracija += 1
 
         current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
 
-        for mini_path in current_population:
-            self.isprintaj_mini_path(mini_path)
+        # for mini_path in current_population:
+        #     self.isprintaj_mini_path(mini_path)
 
         # first position from the best mini_path from the last generation
         next_move = current_population[0][1]
