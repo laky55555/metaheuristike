@@ -1,6 +1,6 @@
 import itertools
 from genetic import Genetic
-
+from find_path import ClosestPath
 
 class Robot(object):
     """
@@ -60,21 +60,31 @@ class Robot(object):
             print("Samo je jedan moguci")
             print(next_move)
         elif(len(possible_next_uncleaned) == 0):
-            closest_uncleaned = self.find_closest_uncleaned(current_position[0][0], current_position[0][1])
-            print("closest_uncleaned")
-            print(closest_uncleaned)
-            possible_next = self.get_available_positions(current_position[0][0], current_position[0][1], False)
-            print("possible_next")
-            print(possible_next)
-            for move in possible_next:
-                distance = self.euclidean_distance(closest_uncleaned[0], closest_uncleaned[1], move[0], move[1])
-                if(len(next_move) == 0 or distance < next_move[0]):
-                    next_move = (distance, move)
-
-            next_move = next_move[1]
-            next_move = (next_move[0] - current_position[0][0], next_move[1] - current_position[0][1])
-            print("Nema neociscenih, slijedeci potez je ")
-            print(next_move)
+            # closest_uncleaned = self.find_closest_uncleaned(current_position[0][0], current_position[0][1])
+            # print("closest_uncleaned")
+            # print(closest_uncleaned)
+            # possible_next = self.get_available_positions(current_position[0][0], current_position[0][1], False)
+            # print("possible_next")
+            # print(possible_next)
+            # for move in possible_next:
+            #     distance = self.euclidean_distance(closest_uncleaned[0], closest_uncleaned[1], move[0], move[1])
+            #     if(len(next_move) == 0 or distance < next_move[0]):
+            #         next_move = (distance, move)
+            #
+            # next_move = next_move[1]
+            # next_move = (next_move[0] - current_position[0][0], next_move[1] - current_position[0][1])
+            closest_path = ClosestPath(self.detected_room, current_position[0])
+            path = closest_path.find_shortest()
+            print("Path zavrni")
+            print(path)
+            for i,j in path[1:]:
+                next_move = (i - current_position[0][0], j - current_position[0][1])
+                current_position[0] = (i,j)
+                self.previous_position = current_position[0]
+                self.room_widget.do_move(next_move)
+            print("Nema neociscenih, slijedeci potez ide na")
+            print(path[-1])
+            return False
         else:
             # Initialize genetic algorithm.
             # Genetic(room, current_position, population_size, mini_path_len, mutation_probability, crossover_probability, number_of_iterations)
