@@ -2,6 +2,7 @@ import itertools
 from genetic import Genetic
 from find_path import ClosestPath
 
+
 class Robot(object):
     """
     Class for comunication between room widget and algorithm for cleaning.
@@ -50,78 +51,57 @@ class Robot(object):
         self.detected_room[current_position[0][0]][
             current_position[0][1]] = 'o'
 
-        next_move = ()
 
-        # Check if robot can move on more than one uncleaned postion.
-        possible_next_uncleaned = self.get_available_positions(current_position[0][0], current_position[0][1], True)
+        # Get all unvisited postions on which robot can move.
+        possible_next_uncleaned = self.get_available_positions(
+            current_position[0][0], current_position[0][1], True)
+
+        # If there is only 1 unvisited place go to that place,
+        # if there are more then 1 call genetic algorithm to decide where to go,
+        # else skip to closest unvisited place with ClosestPath class.
         if(len(possible_next_uncleaned) == 1):
             next_move = possible_next_uncleaned.pop()
-            next_move = (next_move[0] - current_position[0][0], next_move[1] - current_position[0][1])
+            next_move = (next_move[0] - current_position[0]
+                         [0], next_move[1] - current_position[0][1])
             print("Samo je jedan moguci")
             print(next_move)
+
         elif(len(possible_next_uncleaned) == 0):
-            # closest_uncleaned = self.find_closest_uncleaned(current_position[0][0], current_position[0][1])
-            # print("closest_uncleaned")
-            # print(closest_uncleaned)
-            # possible_next = self.get_available_positions(current_position[0][0], current_position[0][1], False)
-            # print("possible_next")
-            # print(possible_next)
-            # for move in possible_next:
-            #     distance = self.euclidean_distance(closest_uncleaned[0], closest_uncleaned[1], move[0], move[1])
-            #     if(len(next_move) == 0 or distance < next_move[0]):
-            #         next_move = (distance, move)
-            #
-            # next_move = next_move[1]
-            # next_move = (next_move[0] - current_position[0][0], next_move[1] - current_position[0][1])
             closest_path = ClosestPath(self.detected_room, current_position[0])
             path = closest_path.find_shortest()
             print("Path zavrni")
             print(path)
-            for i,j in path[1:]:
+            for i, j in path[1:]:
                 next_move = (i - current_position[0][0], j - current_position[0][1])
-                current_position[0] = (i,j)
+                current_position[0] = (i, j)
                 self.previous_position = current_position[0]
                 self.room_widget.do_move(next_move)
+                self.detect_room()
             print("Nema neociscenih, slijedeci potez ide na")
             print(path[-1])
             return False
+
         else:
-            # Initialize genetic algorithm.
-            # Genetic(room, current_position, population_size, mini_path_len, mutation_probability, crossover_probability, number_of_iterations)
             print(current_position)
+            # Genetic(room, current_position, population_size, mini_path_len, mutation_probability, crossover_probability, number_of_iterations)
             if self.previous_position == None:
                 gen = Genetic(self.detected_room, current_position[
-                          0], None, 50, 5, 0.2, 0.85, 2)
+                    0], None, 50, 5, 0.2, 0.85, 2)
             else:
                 gen = Genetic(self.detected_room, current_position[
-                          0], self.previous_position, 50, 5, 0.2, 0.85, 2)
+                    0], self.previous_position, 50, 5, 0.2, 0.85, 2)
 
             next_move = gen.next_move()
-
 
         self.previous_position = current_position[0]
         self.room_widget.do_move(next_move)
 
         return False
 
-    def euclidean_distance(self, x1, y1, x2, y2):
-        return (x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)
-
-    def find_closest_uncleaned(self, pos_x, pos_y):
-        uncleaned = ()
-        for i in range(len(self.detected_room)):
-            for j in range(len(self.detected_room[i])):
-                if(self.detected_room[i][j] == '.'):
-                    distance = self.euclidean_distance(pos_x, pos_y, i, j)
-                    if(len(uncleaned) == 0 or uncleaned[0] > distance):
-                        uncleaned = (distance, (i,j))
-
-        uncleaned = uncleaned[1]
-        return uncleaned
-
     def neighbours_of(self, i, j):
         """Positions of neighbours (includes out of bounds but excludes cell itself)."""
-        neighbours = list(itertools.product(range(i-1, i+2), range(j-1, j+2)))
+        neighbours = list(itertools.product(
+            range(i - 1, i + 2), range(j - 1, j + 2)))
         neighbours.remove((i, j))
         return neighbours
 
@@ -131,14 +111,14 @@ class Robot(object):
         for a, b in self.neighbours_of(pos_x, pos_y):
             if(a < 0 or b < 0):
                 continue
-            if(a >= len(self.detected_room) or b >= len(self.detected_room[a]) ):
+            if(a >= len(self.detected_room) or b >= len(self.detected_room[a])):
                 continue
             if(self.detected_room[a][b] == '#' or self.detected_room[a][b] == 'x'):
                 continue
             if(exclude_cleaned and self.detected_room[a][b] == 'o'):
                 continue
 
-            positions.add((a,b))
+            positions.add((a, b))
 
         return positions
 
