@@ -178,24 +178,13 @@ class Genetic():
             if self.check_cleaned_cell(x_1, y_1+1) and self.check_cleaned_cell(x_2, y_2+1) or self.check_cleaned_cell(x_1, y_1-1) and self.check_cleaned_cell(x_2, y_2-1):
                 cleaned_value = 1
 
-        # if (vertical):
-        #     if self.discovered_space[x_1+1][y_1] == 'o'  and self.discovered_space[x_2+1][y_2] == 'o':
-        #         wall_value = 1
-        #     if self.discovered_space[x_1-1][y_1] == 'o' and self.discovered_space[x_2-1][y_2] == 'o':
-        #         cleaned_value = 1
-        #
-        # else:
-        #     if self.discovered_space[x_1][y_1+1] == 'o' and self.discovered_space[x_2][y_2+1] == 'o':
-        #         wall_value = 1
-        #     if self.discovered_space[x_1][y_1-1] == 'o' and self.discovered_space[x_2][y_2-1] == 'o':
-
         return cleaned_value
 
 
     def calculate_fitness_function(self, mini_path, debug = False):
 
         # TODO: if lost!! find nearest uncleaned
-        distance_koef = 1
+        distance_koef = -1
         uncleaned_koef = 0
         # c = 2
         sum_distance_koef = 1
@@ -215,7 +204,7 @@ class Genetic():
 
         elif (mini_path[0][1] == mini_path[1][1]):
             wall_value = self.check_wall_around(mini_path, False)
-            cleaned_value = self.check_cleaned_cells_around(mini_path, False)                
+            cleaned_value = self.check_cleaned_cells_around(mini_path, False)
 
         if self.previous_position != None:
             if self.mini_path_direction(mini_path):

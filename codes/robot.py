@@ -81,10 +81,10 @@ class Robot(object):
             print(current_position)
             if self.previous_position == None:
                 gen = Genetic(self.detected_room, current_position[
-                          0], None, 50, 5, 0.2, 0.85, 2)
+                          0], None, 50, 5, 0.2, 0.85, 1)
             else:
                 gen = Genetic(self.detected_room, current_position[
-                          0], self.previous_position, 50, 5, 0.2, 0.85, 2)
+                          0], self.previous_position, 50, 5, 0.2, 0.85, 1)
 
             next_move = gen.next_move()
 
