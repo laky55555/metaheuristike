@@ -2,6 +2,12 @@ import itertools
 from genetic import Genetic
 from find_path import ClosestPath
 
+default_gen_population_size = 50
+default_gen_iteration_number = 400
+default_gen_mutation = 0.2
+default_gen_crossover = 0.85
+default_gen_path_length = 5
+
 
 
 class Robot(object):
@@ -27,8 +33,28 @@ class Robot(object):
         self.room_widget = room_widget
         self.full_room = [[None] * len(i) for i in self.room_widget.room]
         self.previous_position = None
+        self.set_default_genetic_parameters()
 
-    def move_one(self):
+    def set_default_genetic_parameters(self):
+        self.genetic_population_size = default_gen_population_size
+        self.genetic_number_of_iterations = default_gen_iteration_number
+        self.genetic_mutation_probability = default_gen_mutation
+        self.genetic_crossover_probability = default_gen_crossover
+        self.mini_path_len = default_gen_path_length
+
+    def get_default_genetic_parameters(self):
+        return (self.genetic_population_size, self.genetic_number_of_iterations,
+                self.genetic_mutation_probability, self.genetic_crossover_probability)
+
+    def set_parameters(self, parameters):
+        if(len(parameters) == 5 and parameters[0] is "genetic"):
+            self.population_size = parameters[1]
+            self.number_of_iterations = parameters[2]
+            self.mutation_probability = parameters[3]
+            self.crossover_probability = parameters[4]
+            print("postavljeni novi param", self.population_size)
+
+    def move_one(self, parameters=None):
         """
         Make one move using algorithm.
         If whole room is cleaned return True and message.
@@ -38,7 +64,8 @@ class Robot(object):
         boolean
             True if every cell has been visited, else False.
         """
-
+        if(parameters != None):
+            self.set_parameters(parameters)
         print("move_one")
         # Search everything around robot and update robot map.
         self.detect_room()
@@ -51,7 +78,6 @@ class Robot(object):
                             for i, row in enumerate(self.detected_room) if 'R' in row]
         self.detected_room[current_position[0][0]][
             current_position[0][1]] = 'o'
-
 
         # Get all unvisited postions on which robot can move.
         possible_next_uncleaned = self.get_available_positions(
@@ -73,7 +99,8 @@ class Robot(object):
             print("Path zavrni")
             print(path)
             for i, j in path[1:]:
-                next_move = (i - current_position[0][0], j - current_position[0][1])
+                next_move = (
+                    i - current_position[0][0], j - current_position[0][1])
                 current_position[0] = (i, j)
                 self.previous_position = current_position[0]
                 self.room_widget.do_move(next_move)
@@ -86,11 +113,17 @@ class Robot(object):
             print(current_position)
             # Genetic(room, current_position, population_size, mini_path_len, mutation_probability, crossover_probability, number_of_iterations)
             if self.previous_position == None:
-                gen = Genetic(self.detected_room, current_position[
-                          0], None, 100, 5, 0.4, 0.85, 1)
+
+                gen = Genetic(self.detected_room, current_position[0], None,
+                              self.population_size, self.mini_path_len,
+                              self.mutation_probability, self.crossover_probability,
+                              self.number_of_iterations)
             else:
-                gen = Genetic(self.detected_room, current_position[
-                          0], self.previous_position, 100, 5, 0.4, 0.85, 1)
+                gen = Genetic(self.detected_room, current_position[0], self.previous_position,
+                              self.population_size, self.mini_path_len,
+                              self.mutation_probability, self.crossover_probability,
+                              self.number_of_iterations)
+
             next_move = gen.next_move()
 
         self.previous_position = current_position[0]
@@ -122,9 +155,11 @@ class Robot(object):
 
         return positions
 
-    def move_all(self):
+    def move_all(self, parameters=None):
         """ Makes moves until whole room is cleared. """
 
+        if(parameters != None):
+            self.set_parameters(parameters)
         print("move_all")
         finished = self.move_one()
         while(not finished):
