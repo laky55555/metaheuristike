@@ -122,12 +122,11 @@ class Genetic():
         return distance
 
 
-
     def mini_path_direction(self, mini_path):
 
         if self.previous_position[0] == mini_path[0][0] and mini_path[0][0] == mini_path[1][0]:
             return True
-        elif self.previous_position[1] == mini_path[0][1] and mini_path[0][0] == mini_path[1][1]:
+        elif self.previous_position[1] == mini_path[0][1] and mini_path[0][1] == mini_path[1][1]:
             return True
         return False
 
@@ -180,31 +179,85 @@ class Genetic():
 
         return cleaned_value
 
+    def check_transition(self, mini_path, vertical = False):
+        transition_value = 0
+
+        x_1 = mini_path[0][0]
+        y_1 = mini_path[0][1]
+        x_2 = mini_path[1][0]
+        y_2 = mini_path[1][1]
+
+        if (vertical):
+            if self.check_cleaned_cell(x_1+1, y_1) and self.check_wall(x_2+1, y_2) or self.check_cleaned_cell(x_1-1, y_1) and self.check_wall(x_2-1, y_2):
+                transition_value = 1
+        else:
+            if self.check_cleaned_cell(x_1, y_1+1) and self.check_wall(x_2, y_2+1) or self.check_cleaned_cell(x_1, y_1-1) and self.check_wall(x_2, y_2-1):
+                transition_value = 1
+
+        return transition_value
+
+    def get_number_of_edges(self, position):
+        edges = 0
+
+        for i, j in self.neighbours_of(position):
+            # out of reach
+            if(i < 0 or j < 0):
+                continue
+            if(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
+                continue
+            if self.discovered_space[i][j] == '.':
+                continue
+
+            edges = edges + 1
+
+        return edges
+
+
+
+        # TODO kako nagradit pt koji obilazi rubove a ne one koji idu u prazno
+    def check_edges(self, mini_path):
+        edges = 0
+        for position in mini_path[1:]:
+            if self.discovered_space[position[0]][position[1]] != 'o':
+                edges = edges + self.get_number_of_edges(position)
+        return edges
 
     def calculate_fitness_function(self, mini_path, debug = False):
 
         # TODO: if lost!! find nearest uncleaned
         distance_koef = -1
-        uncleaned_koef = 0
+        uncleaned_koef = 1
         # c = 2
         sum_distance_koef = 1
 
         direction = 0
-        direction_koef = 0
+        direction_koef = 5
 
         wall_value = 0
         wall_koef = 10
+
         cleaned_value = 0
         cleaned_koef = 15
+
+        transition_value = 0
+        transition_koef = 10
+
+        edges = 0
+        edges_koef = 0
 
 
         if (mini_path[0][0] == mini_path[1][0]):
             wall_value = self.check_wall_around(mini_path, True)
             cleaned_value = self.check_cleaned_cells_around(mini_path, True)
+            transition_value = self.check_transition(mini_path, True)
 
         elif (mini_path[0][1] == mini_path[1][1]):
             wall_value = self.check_wall_around(mini_path, False)
             cleaned_value = self.check_cleaned_cells_around(mini_path, False)
+            transition_value = self.check_transition(mini_path, False)
+
+        edges = self.check_edges(mini_path)
+
 
         if self.previous_position != None:
             if self.mini_path_direction(mini_path):
@@ -219,13 +272,16 @@ class Genetic():
                 print('IDE UZ OCISCENO')
             if direction:
                 print('IDE PRAVOCRTNOOOO')
-            print("Udaljenost koju je robot prosao " + str(distance_koef*self.mini_path_distance(mini_path)))
+            if edges:
+                print('uz rubove' + str(edges))
+            print("Udaljenost koju je robot prosao " + str(self.mini_path_distance(mini_path)))
             print("Broj uzastopnih neocisceno " + str(uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)))
             #print("Broj ukupno neociscenih " + str(c*self.mini_path_uncleaned_cells(mini_path)))
 
             print("Razlika pocetne i svih pozicija " + str(sum_distance_koef*self.mini_path_sum_distance(mini_path)))
-        return (distance_koef * fabs(self.mini_path_distance(mini_path)-5) + uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)
-                 + sum_distance_koef*self.mini_path_sum_distance(mini_path) + direction_koef*direction + wall_koef*wall_value + cleaned_koef*cleaned_value)
+        return (distance_koef * abs(self.mini_path_distance(mini_path)-5) + uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)
+                 + sum_distance_koef*self.mini_path_sum_distance(mini_path) +
+                 direction_koef*direction + wall_koef*wall_value + cleaned_koef*cleaned_value + transition_koef*transition_value + edges_koef*edges)
 
 
     #TODO: napraviti da se ne ostaje u istom genu npr (1,1) -> (1,2) -> (2,2) u (1,1) -> (2,2) -> (2,2)

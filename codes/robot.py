@@ -3,6 +3,7 @@ from genetic import Genetic
 from find_path import ClosestPath
 
 
+
 class Robot(object):
     """
     Class for comunication between room widget and algorithm for cleaning.
@@ -86,10 +87,10 @@ class Robot(object):
             # Genetic(room, current_position, population_size, mini_path_len, mutation_probability, crossover_probability, number_of_iterations)
             if self.previous_position == None:
                 gen = Genetic(self.detected_room, current_position[
-                          0], None, 50, 5, 0.2, 0.85, 1)
+                          0], None, 100, 5, 0.4, 0.85, 1)
             else:
                 gen = Genetic(self.detected_room, current_position[
-                          0], self.previous_position, 50, 5, 0.2, 0.85, 1)
+                          0], self.previous_position, 100, 5, 0.4, 0.85, 1)
             next_move = gen.next_move()
 
         self.previous_position = current_position[0]
