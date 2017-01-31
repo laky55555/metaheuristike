@@ -3,7 +3,7 @@ from genetic import Genetic
 from find_path import ClosestPath
 
 default_gen_population_size = 50
-default_gen_iteration_number = 400
+default_gen_iteration_number = 1
 default_gen_mutation = 0.2
 default_gen_crossover = 0.85
 default_gen_path_length = 5
@@ -117,12 +117,12 @@ class Robot(object):
                 gen = Genetic(self.detected_room, current_position[0], None,
                               self.population_size, self.mini_path_len,
                               self.mutation_probability, self.crossover_probability,
-                              self.number_of_iterations)
+                              self.number_of_iterations, False)
             else:
                 gen = Genetic(self.detected_room, current_position[0], self.previous_position,
                               self.population_size, self.mini_path_len,
                               self.mutation_probability, self.crossover_probability,
-                              self.number_of_iterations)
+                              self.number_of_iterations, False)
 
             next_move = gen.next_move()
 
@@ -173,6 +173,14 @@ class Robot(object):
             self.room_widget.move_back()
         else:
             print("There are no moves to go back.")
+
+    def restart(self):
+        """ Restart map to the begining. """
+
+        print("restart")
+        self.room_widget.restart_cleaned()
+        self.full_room = [[None] * len(i) for i in self.room_widget.room]
+        self.previous_position = None
 
     def extract_detected_only(self, debug=False):
         """

@@ -302,3 +302,16 @@ class Room(QWidget):
 
         self.room[self.robot[-1][0]][self.robot[-1][1]] = 'R'
         self.update()
+
+    def restart_cleaned(self):
+        """ Restart all movement on map, make map as on start. """
+        for i in range(len(self.room)):
+            for j in range(len(self.room[i])):
+                if(self.room[i][j] == 'o' or self.room[i][j] == 'R'):
+                    self.room[i][j] = '.'
+
+        robot_first = self.robot[0]
+        self.robot = []
+        self.robot.append(robot_first)
+        self.room[robot_first[0]][robot_first[1]] = 'R'
+        self.update()

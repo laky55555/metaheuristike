@@ -17,7 +17,7 @@ from math import fabs
 class Genetic():
 
     def __init__(self, discovered_space, current_position, previous_position, population_size, length_of_mini_path,
-                 mutation_probability, crossover_probability, number_of_iterations):
+                 mutation_probability, crossover_probability, number_of_iterations, debug = False):
         self.discovered_space = discovered_space
         # self.current_position_x = current_position[0]
         # self.current_position_y = current_position[1]
@@ -28,6 +28,7 @@ class Genetic():
         self.crossover_probability = crossover_probability
         self.number_of_iterations = number_of_iterations
         self.previous_position = previous_position
+        self.debug = debug
 
 
     def neighbours_of(self, position):
@@ -196,30 +197,34 @@ class Genetic():
 
         return transition_value
 
-    def get_number_of_edges(self, position):
+    def get_number_of_edges(self, position, mini_path):
         edges = 0
 
-        for i, j in self.neighbours_of(position):
+        for i, j in self.neighbours_of(mini_path[position]):
             # out of reach
             if(i < 0 or j < 0):
                 continue
-            if(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
+            elif(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
                 continue
-            if self.discovered_space[i][j] == '.':
+            #TODO: mozda bolje ne gledati or dio??????
+            elif self.discovered_space[i][j] == 'o' or (i,j) in mini_path[:position]:
+                edges += 2
+            elif self.discovered_space[i][j] == '.':
                 continue
+            elif self.discovered_space[i][j] == '#' or self.discovered_space[i][j] == 'x':
+                edges += 1
 
-            edges = edges + 1
 
         return edges
 
 
 
-        # TODO kako nagradit pt koji obilazi rubove a ne one koji idu u prazno
+    # TODO kako nagradit pt koji obilazi rubove a ne one koji idu u prazno
     def check_edges(self, mini_path):
         edges = 0
-        for position in mini_path[1:]:
-            if self.discovered_space[position[0]][position[1]] != 'o':
-                edges = edges + self.get_number_of_edges(position)
+        for i in range(1, len(mini_path)):
+            if self.discovered_space[mini_path[i][0]][mini_path[i][1]] != 'o':
+                edges = edges + self.get_number_of_edges(i, mini_path)
         return edges
 
     def calculate_fitness_function(self, mini_path, debug = False):
@@ -243,7 +248,7 @@ class Genetic():
         transition_koef = 10
 
         edges = 0
-        edges_koef = 0
+        edges_koef = 0.5
 
 
         if (mini_path[0][0] == mini_path[1][0]):
@@ -255,6 +260,7 @@ class Genetic():
             wall_value = self.check_wall_around(mini_path, False)
             cleaned_value = self.check_cleaned_cells_around(mini_path, False)
             transition_value = self.check_transition(mini_path, False)
+
 
         edges = self.check_edges(mini_path)
 
@@ -349,9 +355,11 @@ class Genetic():
         i = 2
         # for each gene generate random number from [0,1], if number is less than self.mutation_probability mutate gene
         while i < self.length_of_mini_path+1:
-            rand = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
+            # rand = int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
+            rand = random()
             if rand < self.mutation_probability:
                 # if there are genes that can be placed instead current one, choose one randomly
+                print(genes_for_mutation[i-1], i)
                 if len(genes_for_mutation[i-1]) >= 1:
                     new_gene = sample(genes_for_mutation[i-1], 1)[0]
                     mini_path[i] = new_gene
@@ -366,6 +374,7 @@ class Genetic():
 
                     # if last gene is being mutated no changes needed
                     if(i == self.length_of_mini_path):
+                        i += 1
                         continue
                     if(i == self.length_of_mini_path-1):
                     # if second last is being changed, change genes_for_mutation of the last gene
@@ -391,7 +400,8 @@ class Genetic():
         new_children1 = []
         point_options = []
         # if random number is higher than crossover probability place parents directly into the new genration
-        if self.crossover_probability < int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1):
+        # if self.crossover_probability < int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1):
+        if self.crossover_probability < random():
             if (Debug):
                 print("IDU DIREKTNO")
             new_children1.extend([parent1, parent2])
@@ -424,7 +434,8 @@ class Genetic():
             print('--------------> DJECA')
             self.isprintaj_mini_path(child1)
             self.isprintaj_mini_path(child2)
-        return new_children1.extend([child1, child2])
+        new_children1.extend([child1, child2])
+        return new_children1
 
 
 
@@ -481,7 +492,7 @@ class Genetic():
         min_value = 99999
         max_value = -1
         for index, mini_path in enumerate(current_population):
-            value = self.calculate_fitness_function(mini_path, True)
+            value = self.calculate_fitness_function(mini_path, self.debug)
             if max_value < value: max_value = value
             if min_value > value: max_value = value
             dictionary_fitness_values[index] = value
@@ -524,7 +535,8 @@ class Genetic():
             parent_two = current_population[self.select_chromosome(dictionary_fitness_values)]
 
             # crossover
-            new_children = self.crossover_one_point(parent_one, parent_two)
+            new_children = self.crossover_one_point(parent_one, parent_two, self.debug)
+            print(new_children)
             if(new_children != None):
                 # if crossover was successful mutate children
                 self.mutationVersion2(new_children[0])
