@@ -90,7 +90,7 @@ class Robot(object):
             next_move = possible_next_uncleaned.pop()
             next_move = (next_move[0] - current_position[0]
                          [0], next_move[1] - current_position[0][1])
-            print("Samo je jedan moguci")
+            # print("Samo je jedan moguci")
             print(next_move)
 
         elif(len(possible_next_uncleaned) == 0):

@@ -5,22 +5,12 @@ import os
 from copy import deepcopy
 from math import fabs
 
-#a = new Genetski([],(0,0))
-#[[(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
-#[(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]]
-#
-#[['#','#','#','#','#','#','#'],
-# ['#','.','.','.','.','.','#'],
-# ['#','.','.','.','.','.','#'],
-# ['#','.','.','.','.','.','#']]
 
 class Genetic():
 
     def __init__(self, discovered_space, current_position, previous_position, population_size, length_of_mini_path,
                  mutation_probability, crossover_probability, number_of_iterations, debug = False):
         self.discovered_space = discovered_space
-        # self.current_position_x = current_position[0]
-        # self.current_position_y = current_position[1]
         self.current_position = current_position
         self.population_size = population_size
         self.length_of_mini_path = length_of_mini_path
@@ -55,8 +45,6 @@ class Genetic():
                 if(self.discovered_space[i][j] == '#' or self.discovered_space[i][j] == 'x'):
                     continue
             positions.add((i, j))
-            # # print ("position " + str(i) + str(j) + " bla " )
-            # # print (self.discovered_space[i][j])
         return positions
 
     # generate mini paths from current robot position
@@ -65,11 +53,6 @@ class Genetic():
         mini_paths = [[robot_position]*(length_of_mini_path + 1) for y in range(number_of_mini_paths)]
         # key -> position in mini path, value -> set of avaliable positions
         saved_neighbours = {}
-
-
-        # TODO: generirat ravno ako je moguce
-        # if (self.discovered_space[x][j+1] == '.')
-
         for j in range(length_of_mini_path):
             for i in range(number_of_mini_paths):
                 if j == 0:
@@ -82,9 +65,7 @@ class Genetic():
                         saved_neighbours[mini_paths[i][j]] = positions
                 # choosing random next position in mini path from avaliable positions
                 mini_paths[i][j+1] = sample(positions, 1)[0] # j+1 -> leaving current robot position in mini paths
-
         return mini_paths
-
 
 
     # sum of euclidean distances between neighbouring positions in mini path
@@ -124,7 +105,6 @@ class Genetic():
 
 
     def mini_path_direction(self, mini_path):
-
         if self.previous_position[0] == mini_path[0][0] and mini_path[0][0] == mini_path[1][0]:
             return True
         elif self.previous_position[1] == mini_path[0][1] and mini_path[0][1] == mini_path[1][1]:
@@ -149,12 +129,6 @@ class Genetic():
         else:
             if self.check_wall(x_1, y_1+1) and self.check_wall(x_2, y_2+1) or self.check_wall(x_1, y_1-1) and self.check_wall(x_2, y_2-1):
                 wall_value = 1
-            # if ((self.discovered_space[x_1][y_1+1] == '#' and self.discovered_space[x_2][y_1+1] == '#' ) or
-            #     (self.discovered_space[x_1][y_1+1] == 'x' and self.discovered_space[x_2][y_1+1] == 'x')):
-            #     wall_value = 1
-            # if ((self.discovered_space[x_1][y_1-1] == '#' and self.discovered_space[x_2][y_1-1] == '#' ) or
-            #     (self.discovered_space[x_1][y_1-1] == 'x' and self.discovered_space[x_2][y_1-1] == 'x')):
-
         return wall_value
 
     def check_cleaned_cell(self, x, y):
@@ -207,15 +181,28 @@ class Genetic():
             elif(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
                 continue
             #TODO: mozda bolje ne gledati or dio??????
-            elif self.discovered_space[i][j] == 'o' or (i,j) in mini_path[:position]:
+            elif self.discovered_space[i][j] == 'o':
+            # elif self.discovered_space[i][j] == 'o' or (i,j) in mini_path[:position]:
                 edges += 2
             elif self.discovered_space[i][j] == '.':
                 continue
             elif self.discovered_space[i][j] == '#' or self.discovered_space[i][j] == 'x':
                 edges += 1
-
-
         return edges
+
+
+    def check_possible_bad_turning(self):
+        x = self.current_position[0]
+        y = self.current_position[1]
+
+        if self.discovered_space[x-1][y+1] == '.' and self.discovered_space[x][y+1] == '.' and self.discovered_space[x+1][y+1] == '.':
+            return True
+        if self.discovered_space[x-1][y-1] == '.' and self.discovered_space[x][y-1] == '.' and self.discovered_space[x+1][y-1] == '.':
+            return True
+        if self.discovered_space[x+1][y-1] == '.' and self.discovered_space[x+1][y] == '.' and self.discovered_space[x+1][y+1] == '.':
+            return True
+        if self.discovered_space[x-1][y-1] == '.' and self.discovered_space[x-1][y] == '.' and self.discovered_space[x-1][y-1] == '.':
+            return True
 
 
 
@@ -224,52 +211,46 @@ class Genetic():
         edges = 0
         for i in range(1, len(mini_path)):
             if self.discovered_space[mini_path[i][0]][mini_path[i][1]] != 'o':
-                edges = edges + self.get_number_of_edges(i, mini_path)
+                edges = edges + (5 - i) * self.get_number_of_edges(i, mini_path)
         return edges
 
     def calculate_fitness_function(self, mini_path, debug = False):
 
-        # TODO: if lost!! find nearest uncleaned
-        distance_koef = -1
+        # TODO: ako imaju 3 slobodne jedna do druge okresi dijagonalu ionako usere stvar
+        distance_koef = 0
         uncleaned_koef = 1
         # c = 2
         sum_distance_koef = 1
 
-        direction = 0
+        direction = wall_value = cleaned_value = transition_value = bad_turning = edges = 0
         direction_koef = 5
-
-        wall_value = 0
         wall_koef = 10
-
-        cleaned_value = 0
         cleaned_koef = 15
-
-        transition_value = 0
         transition_koef = 10
+        edges_koef = 1.3
+        bad_turning_koef = 0
 
-        edges = 0
-        edges_koef = 0.5
+        if self.check_possible_bad_turning():
+            if mini_path[0][0] != mini_path[1][0] and mini_path[0][1] != mini_path[1][1]:
+                bad_turning = 1
+
+
 
 
         if (mini_path[0][0] == mini_path[1][0]):
             wall_value = self.check_wall_around(mini_path, True)
             cleaned_value = self.check_cleaned_cells_around(mini_path, True)
             transition_value = self.check_transition(mini_path, True)
-
         elif (mini_path[0][1] == mini_path[1][1]):
             wall_value = self.check_wall_around(mini_path, False)
             cleaned_value = self.check_cleaned_cells_around(mini_path, False)
             transition_value = self.check_transition(mini_path, False)
 
-
         edges = self.check_edges(mini_path)
-
 
         if self.previous_position != None:
             if self.mini_path_direction(mini_path):
                 direction = 1
-
-
 
         if(debug):
             if wall_value:
@@ -287,7 +268,7 @@ class Genetic():
             print("Razlika pocetne i svih pozicija " + str(sum_distance_koef*self.mini_path_sum_distance(mini_path)))
         return (distance_koef * abs(self.mini_path_distance(mini_path)-5) + uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)
                  + sum_distance_koef*self.mini_path_sum_distance(mini_path) +
-                 direction_koef*direction + wall_koef*wall_value + cleaned_koef*cleaned_value + transition_koef*transition_value + edges_koef*edges)
+                 direction_koef*direction + wall_koef*wall_value + cleaned_koef*cleaned_value + transition_koef*transition_value + sqrt(edges_koef*edges) + bad_turning_koef*bad_turning)
 
 
     #TODO: napraviti da se ne ostaje u istom genu npr (1,1) -> (1,2) -> (2,2) u (1,1) -> (2,2) -> (2,2)
@@ -359,7 +340,7 @@ class Genetic():
             rand = random()
             if rand < self.mutation_probability:
                 # if there are genes that can be placed instead current one, choose one randomly
-                print(genes_for_mutation[i-1], i)
+                # print(genes_for_mutation[i-1], i)
                 if len(genes_for_mutation[i-1]) >= 1:
                     new_gene = sample(genes_for_mutation[i-1], 1)[0]
                     mini_path[i] = new_gene
@@ -456,7 +437,7 @@ class Genetic():
                     debug[i][j] = str(mini_path.index((i,j)))
         for row in debug:
             print(row)
-        print("Vrijednost = " + str(self.calculate_fitness_function(mini_path, True)) + " Iter = " + str(self.iteracija))
+        print("Vrijednost = " + str(self.calculate_fitness_function(mini_path, self.debug)) + " Iter = " + str(self.iteracija))
 
 
 ### Propotionate selection ###
@@ -469,7 +450,6 @@ class Genetic():
         # create dictionary with indexes of mini paths as keys and theirs fitnesses as values
         # e.g.
         for index, mini_path in enumerate(current_population):
-            self.isprintaj_mini_path(mini_path)
             value = self.calculate_fitness_function(mini_path)
             fitness_sum += value
             dictionary_fitness_values[index] = value
@@ -481,24 +461,6 @@ class Genetic():
             probability += (value/fitness_sum)
             dictionary_fitness_values[key] = probability
 
-
-        return dictionary_fitness_values
-
-
-    def place_chromosomes_fitness_into_interval_relative(self, current_population):
-        dictionary_fitness_values = {}
-        fitness_sum = 0
-        probability = 0
-        min_value = 99999
-        max_value = -1
-        for index, mini_path in enumerate(current_population):
-            value = self.calculate_fitness_function(mini_path, self.debug)
-            if max_value < value: max_value = value
-            if min_value > value: max_value = value
-            dictionary_fitness_values[index] = value
-
-        for key, value in dictionary_fitness_values.items():
-            dictionary_fitness_values[key] = (value - min_value)/max_value
 
         return dictionary_fitness_values
 
@@ -565,8 +527,9 @@ class Genetic():
         for i in range(self.number_of_iterations):
             current_population = self.make_one_iteration(current_population)
             current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
-            for mini_path in current_population:
-                self.isprintaj_mini_path(mini_path)
+            if(self.debug):
+                for mini_path in current_population:
+                    self.isprintaj_mini_path(mini_path)
 
             self.iteracija += 1
 
@@ -581,197 +544,3 @@ class Genetic():
         direction = (next_move[0] - self.current_position[0], next_move[1] - self.current_position[1])
 
         return direction
-
-
-
-
-
-# fun fun fun noot
-
-a = ([['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', 'x', 'x', 'x', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', 'x', 'x', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#']])
-
-# gen = Genetic(a, (5,3), 10, 5, 0.2, 0.8, 11)
-
-#mini_paths  = gen.generate_mini_paths(5,5,(5,3))
-# print(mini_paths)
-#
-#dict = gen.place_chromosomes_fitness_into_interval(mini_paths)
-# print(dict)
-
-# nova = gen.make_one_iteration(mini_paths)
-# for i in range(10):
-#     print("_______________________")
-#     nova = gen.make_one_iteration(nova)
-#     print(nova)
-#
-# dict_nova = gen.place_chromosomes_fitness_into_interval(nova)
-# print(dict_nova)
-
-# zadnja_gen = gen.next_move()
-# print(zadnja_gen)
-# print("next moove")
-# zadnja_gen = sorted(zadnja_gen, key = gen.calculate_fitness_function, reverse=True)
-# print(zadnja_gen[0][1])
-
-a = ([['#', '#', '#', '#', '#', '#', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '#'],
-      ['#', '.', '.', '.', '.', '.', '.', '#']])
-
-# gen = Genetic(a, (2,3), 50, 5, 0.2, 0.8, 10)
-#
-# mini_paths  = gen.generate_mini_paths(5,5,(2,3))
-#
-# mini_path = mini_paths[0]
-# print(mini_path)
-#
-# print("prije mutacije")
-# mut = gen.mutationVersion2(mini_path)
-# print("posli mutacije")
-# print(mut)
-# print(mini_path)
-
-
-
-# a = gen.generate_mini_paths(3,5,(3,3))
-# print(a)
-# #b = a[1]
-# b = [(3, 3), (3, 2), (2, 3), (3, 4), (4, 5), (5, 4)]
-# c = [(3, 3), (2, 2), (1, 3), (4, 4), (2, 5), (5, 4)]
-# b = [(3, 3), (4 ,3), (5, 3), (5, 4), (5, 5), (5, 6)]
-#
-# print(b)
-# gen.mutation(b)
-# print(b)
-
-
-
-# print(gen.crossover(b, c, 1))
-# print(gen.crossover(b, c, 2))
-# print(gen.crossover(b, c, 3))
-# print(gen.crossover(b, c, 4))
-# print(gen.crossover(b, c, 5))
-# gen.calculate_fitness_function([(1, 1), (1, 2), (1, 3), (1, 4), (1, 5)])
-# gen.calculate_fitness_function([(1,1), (1, 2), (2, 3)])
-
-#
-
-#print(nova)
-
-
-
-"""print(b)
-print(gen.find_mutable_genes(b))
-for i in range(10):
-    mut = gen.mutation(b)
-    print()
-    print(b, mut, gen.calculate_fitness_function(mut))
-    print(gen.crossover(b, mut, 2))"""
-
-
-
-# for i in range(0,10):
-#     line = ""
-#     for j in range(0,10):
-#         line += ("(" + str(i) + "," + str(j) + ") ")
-#     print(line)
-#
-# a = ([['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
-#         ['#', '.', '.', '.', '.', '.', '.', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
-#         ['#', '0', '.', '.', '.', '.', '.', '.', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'],
-#         ['#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#']])
-#
-# gen = Genetic(a, (2,1), 50, 5, 0.2, 0.8, 10)
-# gen.iteracija = 0
-#
-#
-#
-#
-# mini_paths = [
-#     [(2, 1), (1, 1), (1, 2), (2, 1), (2, 2), (2, 1)],
-#     [(2, 1), (1, 1), (1, 2), (2, 1), (1, 1), (2, 2)],
-#     [(2, 1), (1, 1), (2, 1), (1, 1), (1, 2), (2, 2)],
-#     [(2, 1), (1, 1), (2, 2), (1, 3), (2, 4), (1, 3)],
-#     [(2, 1), (2, 2), (1, 3), (1, 2), (1, 1), (2, 1)],
-#     [(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (1, 5)],
-#     [(2, 1), (2, 2), (2, 1), (2, 2), (1, 1), (2, 2)],
-#     [(2, 1), (2, 2), (2, 1), (2, 2), (1, 3), (2, 2)],
-#     [(2, 1), (1, 2), (2, 3), (2, 2), (1, 3), (1, 2)],
-#     [(2, 1), (2, 2), (2, 1), (1, 2), (2, 2), (1, 1)],
-#     [(2, 1), (1, 2), (2, 2), (1, 1), (2, 1), (1, 2)],
-#     [(2, 1), (1, 2), (1, 1), (2, 2), (2, 3), (1, 2)],
-#     [(2, 1), (2, 2), (2, 1), (1, 1), (2, 2), (2, 3)],
-#     [(2, 1), (2, 2), (1, 2), (2, 2), (1, 3), (1, 2)],
-#     [(2, 1), (1, 1), (2, 1), (1, 1), (2, 1), (1, 1)],
-#     [(2, 1), (2, 2), (1, 2), (2, 3), (1, 2), (2, 1)],
-#     [(2, 1), (2, 2), (1, 1), (1, 2), (2, 2), (2, 1)],
-#     [(2, 1), (1, 2), (1, 1), (1, 2), (1, 1), (1, 2)],
-#     [(2, 1), (1, 1), (1, 2), (1, 3), (2, 2), (2, 3)],
-#     [(2, 1), (1, 2), (2, 3), (1, 4), (2, 3), (2, 2)],
-#     [(2, 1), (1, 2), (2, 2), (1, 3), (2, 3), (2, 2)],
-#     [(2, 1), (1, 1), (2, 2), (1, 1), (2, 2), (1, 3)],
-#     [(2, 1), (1, 2), (1, 1), (2, 2), (1, 3), (2, 3)],
-#     [(2, 1), (2, 2), (1, 3), (1, 4), (1, 3), (1, 4)],
-#     [(2, 1), (1, 2), (2, 3), (1, 4), (2, 4), (2, 5)],
-#     [(2, 1), (2, 2), (2, 3), (2, 4), (2, 3), (1, 3)],
-#     [(2, 1), (1, 2), (2, 1), (1, 1), (1, 2), (2, 1)],
-#     [(2, 1), (1, 2), (2, 3), (1, 3), (2, 4), (1, 4)],
-#     [(2, 1), (1, 2), (2, 2), (1, 2), (1, 3), (2, 3)],
-#     [(2, 1), (1, 2), (2, 2), (1, 1), (2, 1), (1, 2)],
-#     [(2, 1), (1, 1), (2, 1), (1, 1), (2, 2), (1, 1)],
-#     [(2, 1), (1, 2), (1, 3), (2, 3), (1, 3), (2, 4)],
-#     [(2, 1), (1, 2), (2, 2), (1, 1), (2, 2), (2, 1)],
-#     [(2, 1), (1, 1), (2, 1), (1, 2), (1, 3), (1, 4)],
-#     [(2, 1), (1, 1), (2, 1), (2, 2), (1, 2), (1, 3)],
-#     [(2, 1), (1, 1), (2, 1), (1, 2), (1, 1), (2, 2)],
-#     [(2, 1), (1, 2), (2, 2), (1, 1), (1, 2), (1, 3)],
-#     [(2, 1), (1, 1), (1, 2), (1, 1), (1, 2), (1, 3)],
-#     [(2, 1), (2, 2), (2, 3), (2, 2), (1, 2), (2, 1)],
-#     [(2, 1), (2, 2), (2, 1), (2, 2), (2, 1), (1, 1)],
-#     [(2, 1), (1, 2), (2, 1), (1, 2), (2, 3), (1, 2)],
-#     [(2, 1), (1, 2), (2, 2), (2, 3), (1, 3), (2, 2)],
-#     [(2, 1), (1, 1), (2, 2), (1, 2), (1, 1), (1, 2)],
-#     [(2, 1), (2, 2), (2, 3), (1, 4), (2, 3), (1, 3)],
-#     [(2, 1), (2, 2), (1, 2), (1, 1), (2, 1), (1, 1)],
-#     [(2, 1), (2, 2), (2, 1), (1, 2), (2, 2), (2, 1)],
-#     [(2, 1), (2, 2), (2, 3), (1, 4), (2, 3), (2, 2)],
-#     [(2, 1), (1, 2), (1, 3), (1, 4), (1, 3), (1, 2)],
-#     [(2, 1), (1, 2), (1, 1), (1, 2), (1, 1), (2, 1)],
-#     [(2, 1), (2, 2), (1, 2), (1, 3), (1, 2), (1, 1)]
-#
-# ]
-#
-# mini_paths = sorted(mini_paths, key =  gen.calculate_fitness_function, reverse=True)
-#
-# for mini_path in mini_paths:
-#     gen.isprintaj_mini_path(mini_path)
-
-
-# (0,0) (0,1) (0,2) (0,3) (0,4) (0,5) (0,6) (0,7) (0,8) (0,9)
-# (1,0) (1,1) (1,2) (1,3) (1,4) (1,5) (1,6) (1,7) (1,8) (1,9)
-# (2,0) (2,1) (2,2) (2,3) (2,4) (2,5) (2,6) (2,7) (2,8) (2,9)
-# (3,0) (3,1) (3,2) (3,3) (3,4) (3,5) (3,6) (3,7) (3,8) (3,9)
-# (4,0) (4,1) (4,2) (4,3) (4,4) (4,5) (4,6) (4,7) (4,8) (4,9)
-# (5,0) (5,1) (5,2) (5,3) (5,4) (5,5) (5,6) (5,7) (5,8) (5,9)
-# (6,0) (6,1) (6,2) (6,3) (6,4) (6,5) (6,6) (6,7) (6,8) (6,9)
-# (7,0) (7,1) (7,2) (7,3) (7,4) (7,5) (7,6) (7,7) (7,8) (7,9)
-# (8,0) (8,1) (8,2) (8,3) (8,4) (8,5) (8,6) (8,7) (8,8) (8,9)
-# (9,0) (9,1) (9,2) (9,3) (9,4) (9,5) (9,6) (9,7) (9,8) (9,9)
