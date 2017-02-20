@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 from enum import Enum
+from sympy import Line
 
 
 class Symbol(Enum):
@@ -59,6 +60,11 @@ class Room(QWidget):
         # exceptins).
         self.minimum = 0
         self.start = self.findStart()
+
+        self.directions = []
+        self.number_of_turns = 0
+
+        self.multiple_visits = 0
 
         # Debuging:
         # print ("Max room width = {0}, max room heigh = {1}".format(self.room_max_width, self.room_max_height))
@@ -269,6 +275,31 @@ class Room(QWidget):
 
         return detected
 
+    def new_change_of_direction(self, debug=False):
+        if len(self.robot) < 3:
+            self.directions.append(0)
+            #return 0
+        else:
+            # TODO: mozda napraviti provjeru da li su sve tocke razlicite
+            l1 = Line(self.robot[-3], self.robot[-2])
+            l2 = Line(self.robot[-2], self.robot[-1])
+
+            # TODO: mozda raditi razliku izmedu vrsta okreta
+            turn = l1.angle_between(l2)
+            self.directions.append(turn)
+            if turn != 0:
+                self.number_of_turns += 1
+            #return l1.angle_between(l2)
+        if debug:
+            print("Number of turns = ", self.number_of_turns)
+            print("Last turn = ", self.directions[-1])
+            print("Multiple visits = ", self.multiple_visits)
+
+    def update_change_of_directions(self):
+        last_turn = self.directions.pop()
+        if last_turn != 0:
+            self.number_of_turns -= 1
+
     def do_move(self, direction):
         """
         Method that change robot position and refresh room map. Method get
@@ -285,18 +316,26 @@ class Room(QWidget):
         self.room[self.robot[-1][0]][self.robot[-1][1]] = 'o'
         next_x_coord = self.robot[-1][0] + direction[0]
         next_y_coord = self.robot[-1][1] + direction[1]
+
+        if self.room[next_x_coord][next_y_coord] != '.':
+            self.multiple_visits += 1
+
         self.room[next_x_coord][next_y_coord] = 'R'
         self.robot.append((next_x_coord, next_y_coord))
+
+        self.new_change_of_direction()
         self.update()
 
     def move_back(self):
         """ Undo last robot movement and refresh room map. """
 
+        self.update_change_of_directions()
         last_position = self.robot.pop()
         # Check if robot visited last position already before now, and change
         # cell tip in UNVISITED or VISITED accordingly.
         if last_position in self.robot:
             self.room[last_position[0]][last_position[1]] = 'o'
+            self.multiple_visits -= 1
         else:
             self.room[last_position[0]][last_position[1]] = '.'
 
@@ -311,6 +350,9 @@ class Room(QWidget):
                     self.room[i][j] = '.'
 
         robot_first = self.robot[0]
+        self.directions = []
+        self.number_of_turns = 0
+        self.multiple_visits = 0
         self.robot = []
         self.robot.append(robot_first)
         self.room[robot_first[0]][robot_first[1]] = 'R'

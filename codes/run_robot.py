@@ -29,6 +29,7 @@ class RunRobotWidget(QWidget):
         self.preferences = QLabel('Preferences:')
         self.initialize_robot_buttons()
         self.initialize_genetic_buttons()
+        self.initialize_robot_statistic()
         self.set_shortcuts()
         self.set_layout_positions()
         self.set_range_step_for_variables()
@@ -55,6 +56,11 @@ class RunRobotWidget(QWidget):
         self.crossover = QDoubleSpinBox(self)
         self.crossover.setPrefix("Crossover probability ")
 
+    def initialize_robot_statistic(self):
+        self.number_of_moves = QLabel('Number of moves = 0')
+        self.number_of_turns = QLabel('Number of turns = 0')
+        self.number_of_multiple_visited = QLabel('Multiple visited = 0')
+
     def set_layout_positions(self):
         layout = QGridLayout()
         layout.addWidget(self.button_move_one, 1, 0)
@@ -67,6 +73,9 @@ class RunRobotWidget(QWidget):
         layout.addWidget(self.mutation, 3, 2)
         layout.addWidget(self.crossover, 3, 3)
         layout.addWidget(self.robot.room_widget, 4, 0, 11, 3)
+        layout.addWidget(self.number_of_moves, 4, 3)
+        layout.addWidget(self.number_of_turns, 6, 3)
+        layout.addWidget(self.number_of_multiple_visited, 8, 3)
         self.setLayout(layout)
 
     def set_range_step_for_variables(self):
@@ -82,8 +91,8 @@ class RunRobotWidget(QWidget):
     def initialize_on_click_buttons(self):
         self.button_move_one.clicked.connect(self.make_one_move)
         self.button_move_all.clicked.connect(self.make_all_moves)
-        self.button_back_one.clicked.connect(self.robot.move_back)
-        self.button_restart.clicked.connect(self.robot.restart)
+        self.button_back_one.clicked.connect(self.move_back)
+        self.button_restart.clicked.connect(self.restart)
 
     def set_default_genetic_parameters(self):
         parameters = self.robot.get_default_genetic_parameters()
@@ -102,8 +111,23 @@ class RunRobotWidget(QWidget):
         return ("genetic", self.population.value(), self.iterations.value(),
                 self.mutation.value(), self.crossover.value())
 
+    def update_robot_stats(self):
+        self.number_of_moves.setText('Number of moves = ' + str(len(self.robot.room_widget.robot)-1))
+        self.number_of_turns.setText('Number of turns = ' + str(self.robot.room_widget.number_of_turns))
+        self.number_of_multiple_visited.setText('Multiple visited = ' + str(self.robot.room_widget.multiple_visits))
+
     def make_one_move(self):
         self.robot.move_one(self.get_values())
+        self.update_robot_stats()
 
     def make_all_moves(self):
         self.robot.move_all(self.get_values())
+        self.update_robot_stats()
+
+    def move_back(self):
+        self.robot.move_back()
+        self.update_robot_stats()
+
+    def restart(self):
+        self.robot.restart()
+        self.update_robot_stats()
