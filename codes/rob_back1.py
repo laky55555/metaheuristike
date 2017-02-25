@@ -115,6 +115,8 @@ class Robot(object):
             return False
 
         elif(position):
+             print(position)
+             position = position.pop()
              print("BBbbbbbbbBBBBBBB")
              print(position)
              next_move = (position[0] - current_position[0]

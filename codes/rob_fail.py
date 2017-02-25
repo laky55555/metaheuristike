@@ -20,12 +20,14 @@ class Robot(object):
         """
         Initialize robot for moving and his memory.
         At start Initialize size of whole room for easier memory managmenet.
+
         Parameters
         ----------
         room_widget : QWidget
             Widget in which we will draw moves and buttons for making moves.
         sight_distance : int
             Number of fields robot can see around in each direction.
+
         """
         self.sight_distance = sight_distance
         self.room_widget = room_widget
@@ -52,16 +54,32 @@ class Robot(object):
             self.crossover_probability = parameters[4]
             print("postavljeni novi param", self.population_size)
 
-    def check_single_uncleaned(self, possible_next_uncleaned):
-        for position in possible_next_uncleaned:
-                if( len(self.get_available_positions(position[0], position[1], True))  == 0):
-                    return position
-        return None
+    def check_bound(self, x, y):
+        if self.detected_room[x][y] != '.':
+            return True
+        return False
+
+    def check_closing(self, possible_next_uncleaned, current_position):
+        positions = set()
+        x = current_position[0][0]
+        y = current_position[0][1]
+
+        print('Xxxxxxxxx')
+        print(x)
+        print('YYYYYYYYY')
+        print(y)
+        if(self.check_bound(x, y+1)  and self.check_bound(x, y-1) or
+            self.check_bound(x-1, y) and self.check_bound(x+1, y)):
+            for position in possible_next_uncleaned:
+                if( len(self.get_available_positions(position[0], position[1], True))  == 1):
+                    positions.add(position)
+        return positions
 
     def move_one(self, parameters=None):
         """
         Make one move using algorithm.
         If whole room is cleaned return True and message.
+
         Returns
         -------
         boolean
@@ -89,14 +107,14 @@ class Robot(object):
         # If there is only 1 unvisited place go to that place,
         # if there are more then 1 call genetic algorithm to decide where to go,
         # else skip to closest unvisited place with ClosestPath class.
-        position = self.check_single_uncleaned(possible_next_uncleaned)
-
         if(len(possible_next_uncleaned) == 1):
             next_move = possible_next_uncleaned.pop()
             next_move = (next_move[0] - current_position[0]
                          [0], next_move[1] - current_position[0][1])
             # print("Samo je jedan moguci")
             print(next_move)
+
+        # TODO: find avaliable positions from current, for each see if corner (get avaliable == 1)
 
         elif(len(possible_next_uncleaned) == 0):
             closest_path = ClosestPath(self.detected_room, current_position[0])
@@ -114,11 +132,32 @@ class Robot(object):
             print(path[-1])
             return False
 
-        elif(position):
-             print("BBbbbbbbbBBBBBBB")
-             print(position)
-             next_move = (position[0] - current_position[0]
+        elif(len(self.check_closing(possible_next_uncleaned, current_position)) != 0
+                    and self.previous_position != None ):
+             positions = self.check_closing(possible_next_uncleaned, current_position)
+             print("AAAAAAAAAAAAAAA")
+             print(positions)
+             position = positions.intersection(self.get_available_positions(self.previous_position[0], self.previous_position[1], True))
+             if position:
+                 position = position.pop()
+                 print("BBbbbbbbbBBBBBBB")
+                 print(position)
+                 next_move = (position[0] - current_position[0]
                               [0], position[1] - current_position[0][1])
+             else:
+                 if self.previous_position == None:
+
+                     gen = Genetic(self.detected_room, current_position[0], None,
+                                   self.population_size, self.mini_path_len,
+                                   self.mutation_probability, self.crossover_probability,
+                                   self.number_of_iterations)
+                 else:
+                     gen = Genetic(self.detected_room, current_position[0], self.previous_position,
+                                   self.population_size, self.mini_path_len,
+                                   self.mutation_probability, self.crossover_probability,
+                                   self.number_of_iterations)
+
+                 next_move = gen.next_move()
 
         else:
             print(current_position)

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Naslov</title>
+  </head>
+  <body>
+    <div class="container">
+
+    </div>
+
+
+    <script >
+    for(var i = 0; i <= 6; i++){
+      for(var j = 0; j<= 6; j++){
+        var btn = "<button data='" + i + "-" + j +  "'></button>"
+        $('.container').append(btn);
+      }
+    }
+    </script>
+
+  </body>
+
+
+
+
+</html>
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js">
+
+$(document).ready(function(){
+  console.log("radi");
+  // for(var i = 0; i <= 6; i++){
+  //   for(var j = 0; j<= 6; j++){
+  //     var btn = "<button data='" + i + "-" + j +  "'></button>"
+  //     $('.container').append(btn);
+  //   }
+  // }
+});
+</script>

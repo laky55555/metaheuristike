@@ -30,7 +30,7 @@ class Genetic():
         return neighbours
 
     # positions that robot can move to
-    def get_available_positions(self, position, restricted = True):
+    def get_available_positions(self, position, restricted = False):
         positions = set()
         for i, j in self.neighbours_of(position):
             # out of reach
@@ -181,10 +181,8 @@ class Genetic():
             elif(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
                 continue
             #TODO: mozda bolje ne gledati or dio??????
-            # elif self.discovered_space[i][j] == 'o':
+            elif self.discovered_space[i][j] == 'o':
             # elif self.discovered_space[i][j] == 'o' or (i,j) in mini_path[:position]:
-            elif self.discovered_space[i][j] == 'o' and (i,j) not in mini_path[:position]:
-
                 edges += 2
             elif self.discovered_space[i][j] == '.':
                 continue
@@ -223,7 +221,7 @@ class Genetic():
     def calculate_fitness_function(self, mini_path, debug = False):
 
         distance_koef = 0
-        uncleaned_koef = 0
+        uncleaned_koef = 1
         sum_distance_koef = 1
         direction = wall_value = cleaned_value = transition_value = bad_turning = edges = 0
         direction_koef = 5
@@ -231,7 +229,7 @@ class Genetic():
         cleaned_koef = 15
         transition_koef = 10
         edges_koef = 1.3
-        bad_turning_koef = -2
+        bad_turning_koef = -3
 
         if self.check_possible_bad_turning():
             if mini_path[0][0] != mini_path[1][0] and mini_path[0][1] != mini_path[1][1]:
@@ -267,7 +265,7 @@ class Genetic():
             print("Broj uzastopnih neocisceno " + str(uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)))
             #print("Broj ukupno neociscenih " + str(c*self.mini_path_uncleaned_cells(mini_path)))
             print("Razlika pocetne i svih pozicija " + str(sum_distance_koef*self.mini_path_sum_distance(mini_path)))
-        return (distance_koef * abs(self.mini_path_distance(mini_path)-7) + uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)
+        return (distance_koef * abs(self.mini_path_distance(mini_path)-5) + uncleaned_koef*self.mini_path_consecutive_uncleaned_cells(mini_path)
                  + sum_distance_koef*self.mini_path_sum_distance(mini_path) +
                  direction_koef*direction + wall_koef*wall_value + cleaned_koef*cleaned_value + transition_koef*transition_value + sqrt(edges_koef*edges) + bad_turning_koef*bad_turning)
 
@@ -390,7 +388,7 @@ class Genetic():
             return new_children1
 
         # nema smisla minjat prvu poziciju jer dobijemo dva ista puta
-        for point_of_crossing in range(2,self.length_of_mini_path+1):
+        for point_of_crossing in range(2,6):
             if(parent2[point_of_crossing] in self.neighbours_of(parent1[point_of_crossing-1]) and
                 parent1[point_of_crossing] in self.neighbours_of(parent2[point_of_crossing-1])):
                     point_options.append(point_of_crossing)
@@ -520,18 +518,17 @@ class Genetic():
 
         for i in range(self.number_of_iterations):
             current_population = self.make_one_iteration(current_population)
-            current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
+            # current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
             if(self.debug):
                 for mini_path in current_population:
                     self.isprintaj_mini_path(mini_path)
 
             self.iteracija += 1
 
-        if(self.debug):
-            current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
+        current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
 
-            for mini_path in current_population:
-                self.isprintaj_mini_path(mini_path)
+        # for mini_path in current_population:
+        #     self.isprintaj_mini_path(mini_path)
 
         # first position from the best mini_path from the last generation
         next_move = current_population[0][1]
