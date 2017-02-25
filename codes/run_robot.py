@@ -115,7 +115,7 @@ class RunRobotWidget(QWidget):
 
     def update_robot_stats(self):
         self.number_of_moves.setText('Number of moves = ' + str(len(self.robot.room_widget.robot)-1))
-        self.passed_distance.setText('Passed distance = ' + str(self.robot.room_widget.passed_distance))
+        self.passed_distance.setText('Passed distance = %0.2f' % self.robot.room_widget.passed_distance)
         self.number_of_turns.setText('Number of turns = ' + str(self.robot.room_widget.number_of_turns))
         self.number_of_multiple_visited.setText('Multiple visited = ' + str(self.robot.room_widget.multiple_visits))
 
