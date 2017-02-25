@@ -58,6 +58,7 @@ class RunRobotWidget(QWidget):
 
     def initialize_robot_statistic(self):
         self.number_of_moves = QLabel('Number of moves = 0')
+        self.passed_distance = QLabel('Passed distance = 0')
         self.number_of_turns = QLabel('Number of turns = 0')
         self.number_of_multiple_visited = QLabel('Multiple visited = 0')
 
@@ -74,8 +75,9 @@ class RunRobotWidget(QWidget):
         layout.addWidget(self.crossover, 3, 3)
         layout.addWidget(self.robot.room_widget, 4, 0, 11, 3)
         layout.addWidget(self.number_of_moves, 4, 3)
-        layout.addWidget(self.number_of_turns, 6, 3)
-        layout.addWidget(self.number_of_multiple_visited, 8, 3)
+        layout.addWidget(self.passed_distance, 6, 3)
+        layout.addWidget(self.number_of_turns, 8, 3)
+        layout.addWidget(self.number_of_multiple_visited, 10, 3)
         self.setLayout(layout)
 
     def set_range_step_for_variables(self):
@@ -113,6 +115,7 @@ class RunRobotWidget(QWidget):
 
     def update_robot_stats(self):
         self.number_of_moves.setText('Number of moves = ' + str(len(self.robot.room_widget.robot)-1))
+        self.passed_distance.setText('Passed distance = %0.2f' % self.robot.room_widget.passed_distance)
         self.number_of_turns.setText('Number of turns = ' + str(self.robot.room_widget.number_of_turns))
         self.number_of_multiple_visited.setText('Multiple visited = ' + str(self.robot.room_widget.multiple_visits))
 

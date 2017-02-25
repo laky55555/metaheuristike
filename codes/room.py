@@ -3,6 +3,7 @@ from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 from enum import Enum
 from sympy import Line
+from math import sqrt
 
 
 class Symbol(Enum):
@@ -65,6 +66,7 @@ class Room(QWidget):
         self.number_of_turns = 0
 
         self.multiple_visits = 0
+        self.passed_distance = 0
 
         # Debuging:
         # print ("Max room width = {0}, max room heigh = {1}".format(self.room_max_width, self.room_max_height))
@@ -313,6 +315,8 @@ class Room(QWidget):
             0 is stay in place.
 
         """
+        self.passed_distance += sqrt(direction[0]**2 + direction[1]**2)
+
         self.room[self.robot[-1][0]][self.robot[-1][1]] = 'o'
         next_x_coord = self.robot[-1][0] + direction[0]
         next_y_coord = self.robot[-1][1] + direction[1]
@@ -324,23 +328,32 @@ class Room(QWidget):
         self.robot.append((next_x_coord, next_y_coord))
 
         self.new_change_of_direction()
+        #print("passed_distance = ", self.passed_distance)
         self.update()
 
     def move_back(self):
         """ Undo last robot movement and refresh room map. """
 
-        self.update_change_of_directions()
-        last_position = self.robot.pop()
-        # Check if robot visited last position already before now, and change
-        # cell tip in UNVISITED or VISITED accordingly.
-        if last_position in self.robot:
-            self.room[last_position[0]][last_position[1]] = 'o'
-            self.multiple_visits -= 1
-        else:
-            self.room[last_position[0]][last_position[1]] = '.'
+        if(len(self.robot) > 1):
+            self.update_change_of_directions()
+            last_position = self.robot.pop()
+            # Check if robot visited last position already before now, and change
+            # cell tip in UNVISITED or VISITED accordingly.
+            if last_position in self.robot:
+                self.room[last_position[0]][last_position[1]] = 'o'
+                self.multiple_visits -= 1
+            else:
+                self.room[last_position[0]][last_position[1]] = '.'
 
-        self.room[self.robot[-1][0]][self.robot[-1][1]] = 'R'
-        self.update()
+            self.room[self.robot[-1][0]][self.robot[-1][1]] = 'R'
+
+            #Update passed_distance
+            self.passed_distance -= sqrt((self.robot[-1][0]-last_position[0])**2 + (self.robot[-1][1]-last_position[1])**2)
+
+            self.update()
+
+        else:
+            print("No moves to go back.")
 
     def restart_cleaned(self):
         """ Restart all movement on map, make map as on start. """
@@ -353,6 +366,7 @@ class Room(QWidget):
         self.directions = []
         self.number_of_turns = 0
         self.multiple_visits = 0
+        self.passed_distance = 0
         self.robot = []
         self.robot.append(robot_first)
         self.room[robot_first[0]][robot_first[1]] = 'R'
