@@ -212,7 +212,7 @@ class Genetic():
             return True
         if self.discovered_space[x+1][y-1] == '.' and self.discovered_space[x+1][y] == '.' and self.discovered_space[x+1][y+1] == '.':
             return True
-        if self.discovered_space[x-1][y-1] == '.' and self.discovered_space[x-1][y] == '.' and self.discovered_space[x-1][y-1] == '.':
+        if self.discovered_space[x-1][y-1] == '.' and self.discovered_space[x-1][y] == '.' and self.discovered_space[x-1][y+1] == '.':
             return True
 
         return False
