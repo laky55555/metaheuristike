@@ -52,10 +52,11 @@ class Robot(object):
             self.crossover_probability = parameters[4]
             print("postavljeni novi param", self.population_size)
 
-    def check_single_uncleaned(self, possible_next_uncleaned):
+    def check_single_uncleaned(self, possible_next_uncleaned, current_position):
         for position in possible_next_uncleaned:
-                if( len(self.get_available_positions(position[0], position[1], True))  == 0):
-                    return position
+            avaliable_position = self.get_available_positions(position[0], position[1], True).difference(current_position)
+            if( len(avaliable_position)  == 0):
+                return position
         return None
 
     def move_one(self, parameters=None):
@@ -89,7 +90,7 @@ class Robot(object):
         # If there is only 1 unvisited place go to that place,
         # if there are more then 1 call genetic algorithm to decide where to go,
         # else skip to closest unvisited place with ClosestPath class.
-        position = self.check_single_uncleaned(possible_next_uncleaned)
+        position = self.check_single_uncleaned(possible_next_uncleaned, current_position[0])
 
         if(len(possible_next_uncleaned) == 1):
             next_move = possible_next_uncleaned.pop()

@@ -41,8 +41,8 @@ class RunRobotWidget(QWidget):
         self.button_move_one.setStatusTip('Make next move')
         self.button_move_all = QPushButton('Do all moves')
         self.button_move_all.setStatusTip('Make moves until end')
-        self.button_back_one = QPushButton('Go back')
-        self.button_back_one.setStatusTip('Undo move')
+        # self.button_back_one = QPushButton('Go back')
+        # self.button_back_one.setStatusTip('Undo move')
         self.button_restart = QPushButton('Restart')
         self.button_restart.setStatusTip('Restart map')
 
@@ -66,7 +66,7 @@ class RunRobotWidget(QWidget):
         layout = QGridLayout()
         layout.addWidget(self.button_move_one, 1, 0)
         layout.addWidget(self.button_move_all, 1, 1)
-        layout.addWidget(self.button_back_one, 1, 2)
+        # layout.addWidget(self.button_back_one, 1, 2)
         layout.addWidget(self.button_restart, 1, 3)
         layout.addWidget(self.preferences, 2, 0)
         layout.addWidget(self.population, 3, 0)
@@ -93,7 +93,7 @@ class RunRobotWidget(QWidget):
     def initialize_on_click_buttons(self):
         self.button_move_one.clicked.connect(self.make_one_move)
         self.button_move_all.clicked.connect(self.make_all_moves)
-        self.button_back_one.clicked.connect(self.move_back)
+        # self.button_back_one.clicked.connect(self.move_back)
         self.button_restart.clicked.connect(self.restart)
 
     def set_default_genetic_parameters(self):
@@ -106,7 +106,7 @@ class RunRobotWidget(QWidget):
     def set_shortcuts(self):
         self.button_move_one.setShortcut('Ctrl+D')
         self.button_move_all.setShortcut('Ctrl+A')
-        self.button_back_one.setShortcut('Ctrl+B')
+        # self.button_back_one.setShortcut('Ctrl+B')
         self.button_restart.setShortcut('Ctrl+R')
 
     def get_values(self):

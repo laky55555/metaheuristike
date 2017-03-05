@@ -233,6 +233,19 @@ class Genetic():
         edges_koef = 1.3
         bad_turning_koef = -2
 
+        #
+        # distance_koef = 0
+        # uncleaned_koef = 1
+        # sum_distance_koef = 1
+        # direction = wall_value = cleaned_value = transition_value = bad_turning = edges = 0
+        # direction_koef = 5
+        # wall_koef = 10
+        # cleaned_koef = 15
+        # transition_koef = 10
+        # edges_koef = 1.3
+        # bad_turning_koef = -2
+
+
         if self.check_possible_bad_turning():
             if mini_path[0][0] != mini_path[1][0] and mini_path[0][1] != mini_path[1][1]:
                 bad_turning = 1
@@ -487,8 +500,6 @@ class Genetic():
         # place two best chromosomes directly into the new generation
         new_generation.extend(current_population[:2])
 
-        # del current_population[:2]
-
         # TODO: sort inside place_chromosomes_fitness_into_interval ?
         dictionary_fitness_values = self.place_chromosomes_fitness_into_interval(current_population)
 
@@ -520,10 +531,10 @@ class Genetic():
 
         for i in range(self.number_of_iterations):
             current_population = self.make_one_iteration(current_population)
-            current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
-            if(self.debug):
-                for mini_path in current_population:
-                    self.isprintaj_mini_path(mini_path)
+            # current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
+            # if(self.debug):
+            #     for mini_path in current_population:
+            #         self.isprintaj_mini_path(mini_path)
 
             self.iteracija += 1
 
@@ -534,6 +545,8 @@ class Genetic():
                 self.isprintaj_mini_path(mini_path)
 
         # first position from the best mini_path from the last generation
+        current_population = sorted(current_population, key = self.calculate_fitness_function, reverse=True)
+
         next_move = current_population[0][1]
         # direction is difference between next and current possition
         direction = (next_move[0] - self.current_position[0], next_move[1] - self.current_position[1])
