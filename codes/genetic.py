@@ -180,11 +180,7 @@ class Genetic():
                 continue
             elif(i >= len(self.discovered_space) or  j>= len(self.discovered_space[i])):
                 continue
-            #TODO: mozda bolje ne gledati or dio??????
-            # elif self.discovered_space[i][j] == 'o':
-            # elif self.discovered_space[i][j] == 'o' or (i,j) in mini_path[:position]:
             elif self.discovered_space[i][j] == 'o' and (i,j) not in mini_path[:position]:
-
                 edges += 2
             elif self.discovered_space[i][j] == '.':
                 continue
@@ -198,7 +194,6 @@ class Genetic():
         for i in range(1, len(mini_path)):
             if self.discovered_space[mini_path[i][0]][mini_path[i][1]] != 'o':
                 edges = edges + (5 - i) * self.get_number_of_edges(i, mini_path)
-            # edges = edges + (5 - i) * self.get_number_of_edges(i, mini_path)
         return edges
 
 
@@ -285,7 +280,6 @@ class Genetic():
                  direction_koef*direction + wall_koef*wall_value + cleaned_koef*cleaned_value + transition_koef*transition_value + sqrt(edges_koef*edges) + bad_turning_koef*bad_turning)
 
 
-    #TODO: napraviti da se ne ostaje u istom genu npr (1,1) -> (1,2) -> (2,2) u (1,1) -> (2,2) -> (2,2)
     def find_mutable_genes(self, mini_path):
         saved_neighbours = {}
         mutable_genes = [] # list of sets, list[index] contains set of positions that mini_path[index] can be changed with
@@ -307,11 +301,9 @@ class Genetic():
         return mutable_genes
 
 
-    # TODO: za svaki kromosom generiraj slucajan broj, ako je manji od vjerojatnosti mutiraj
     def mutation(self, mini_path):
         genes_for_mutation = self.find_mutable_genes(mini_path)
 
-        # je li isto prolazit svaki gen i gledat vjerojatnost? -> nope
         index = choice(range(2, len(mini_path))) # choosing position to mutate
         while len(genes_for_mutation[index-1]) < 1: # if set is empty
             index = choice(range(1, len(mini_path)))
@@ -329,10 +321,6 @@ class Genetic():
         lens = [max(map(len, col)) for col in zip(*s)]
         fmt = '\t'.join('{{:{}}}'.format(x) for x in lens)
         table = [fmt.format(*row) for row in s]
-        # print  ('\n'.join(table))
-
-        # for x in population:
-                # print (self.mini_path_distance(x), self.mini_path_uncleaned_cells(x), self.mini_path_sum_distance(x))
 
     def update_mutable_genes(self, mini_path, index_of_position_to_update, genes_for_mutation):
         # TODO: bolje to napravit
@@ -386,8 +374,7 @@ class Genetic():
         return mini_path
 
 
-    # TODO: sta kad su isti
-    # mozda kao djecu vratit najbolja 2
+
     def crossover_one_point(self, parent1, parent2, Debug = False):
         if (Debug):
             print('_______________________________KRIZANJE________________________')
@@ -435,15 +422,12 @@ class Genetic():
 
 
     def generate_initial_population(self):
-        # TODO: vidit ima li ravnih i onda izgenerirat ostale
         initial_population = self.generate_mini_paths(self.population_size, self.length_of_mini_path, self.current_position)
         return initial_population
 
 
     def isprintaj_mini_path(self, mini_path):
         print(mini_path)
-        # print(" " + str(self.calculate_fitness_function(mini_path, False)) + " " + str(self.mini_path_uncleaned_cells(mini_path))
-        #      + " " + str(self.mini_path_distance(mini_path)) + " " + str(self.mini_path_sum_distance(mini_path)))
         debug = deepcopy(self.discovered_space)
         for i, row in enumerate(debug):
             for j, element in enumerate(row):
@@ -457,20 +441,16 @@ class Genetic():
 ### Propotionate selection ###
     def place_chromosomes_fitness_into_interval(self, current_population):
         # current population is sorted
-        # TODO: sort inside this function when calculating fitness function
         dictionary_fitness_values = {}
         fitness_sum = 0
         probability = 0
         # create dictionary with indexes of mini paths as keys and theirs fitnesses as values
-        # e.g.
         for index, mini_path in enumerate(current_population):
             value = self.calculate_fitness_function(mini_path)
             fitness_sum += value
             dictionary_fitness_values[index] = value
-            #self.isprintaj_mini_path(mini_path)
 
         # scale fitness values into interval [0, 1]
-        # e.g.
         for key, value in dictionary_fitness_values.items():
             probability += (value/fitness_sum)
             dictionary_fitness_values[key] = probability
@@ -500,7 +480,6 @@ class Genetic():
         # place two best chromosomes directly into the new generation
         new_generation.extend(current_population[:2])
 
-        # TODO: sort inside place_chromosomes_fitness_into_interval ?
         dictionary_fitness_values = self.place_chromosomes_fitness_into_interval(current_population)
 
         while i < (int(self.population_size/2) - 1):
